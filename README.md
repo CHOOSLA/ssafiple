@@ -48,7 +48,15 @@ team_project/
 
 ---
 
-## 🚀 로컬 개발 퀵 스타트
+## 🚀 프로덕션 배포 및 CI/CD (GitHub 미러링)
+* **프론트엔드 (Netlify)**: `netlify.toml` 및 SPA 리다이렉트(`public/_redirects`) 설정 완료.
+* **백엔드 (Render)**: FastAPI Uvicorn 배포를 위한 `render.yaml` 설정 완료.
+* **GitLab CI 자동화**: `.gitlab-ci.yml`을 통해 내부 GitLab에서 GitHub 원격 저장소로 **자동 동기화(Mirroring)**를 수행합니다. 
+  * 설정 방법: GitLab 설정 -> CI/CD -> Variables에 `GITHUB_USERNAME`, `GITHUB_PAT`, `GITHUB_REPO_NAME`을 등록하면 푸시 때마다 GitHub로 자동 배달됩니다.
+
+---
+
+## 💻 로컬 개발 퀵 스타트
 
 ### 1. Backend (FastAPI)
 ```bash
