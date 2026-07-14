@@ -20,11 +20,9 @@
     </div>
 
     <!-- 우측 40% 패널: 지도 전역 배경 영역 -->
-    <!-- 지도는 항상 우측 전체 혹은 배경에 깔리게 설정하고, MapView에서 SDK를 초기화할 수 있도록 컨테이너를 둡니다 -->
+    <!-- 지도는 항상 우측 전체 혹은 배경에 깔리게 설정하고, KakaoMap 컴포넌트를 렌더링합니다 -->
     <div class="map-container">
-      <div id="map-root" class="placeholder-map">
-        🗺️ 지도 영역 (feat/map-domain 에서 구현)
-      </div>
+      <KakaoMap />
     </div>
 
     <!-- 우측 하단 플로팅 챗봇 영역 -->
@@ -35,6 +33,7 @@
 </template>
 
 <script setup>
+import KakaoMap from '@/components/map/KakaoMap.vue'
 // 앱 전체의 공통 레이아웃 스캐폴딩
 </script>
 
