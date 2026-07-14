@@ -117,27 +117,9 @@
 
 ---
 
-## 10. 프론트엔드 디자인 시스템 및 공통 스타일 가이드
-프론트엔드 화면을 구현하는 모든 에이전트는 UI의 통일성과 일관성을 위해 `frontend/src/style.css`에 사전 정의된 다음의 공통 클래스와 CSS 변수를 필수로 사용해야 합니다.
+## 10. 프론트엔드 디자인 가이드라인
+프론트엔드 UI를 구현하는 모든 에이전트는 자체적인 스타일을 하드코딩하지 말고, 사전에 정의된 다음의 공통 자산(Asset)을 우선적으로 참조해야 합니다.
 
-* **컬러 토큰 (CSS Variables)**:
-  * `--accent`: `#f15b4c` (피치 오렌지, 주요 포인트 색상)
-  * `--bg-color`: `#eef0ea` (라이트 그레이, 앱 배경)
-  * `--text-primary`: `#1c1b1a` (기본 텍스트), `--text-secondary`: `#8a877f` (보조 텍스트)
-  * **카테고리 컬러**: `--cat-tour`(관광지), `--cat-food`(음식점), `--cat-culture`(문화), `--cat-shopping`(쇼핑), `--cat-stay`(숙박)
-
-* **공통 UI 컴포넌트 클래스**:
-  * **버튼 (Buttons)**: 
-    * `.btn-primary` (주요 액션, 색상 배경)
-    * `.btn-secondary` (보조 액션, 연한 배경)
-    * `.btn-outline` (테두리 강조 버튼)
-    * `.btn-icon` / `.btn-circle-action` (원형 아이콘 버튼)
-  * **입력 폼 (Inputs)**:
-    * `.input-wrapper` (배경이 있는 인풋 그룹), `.input-base` (테두리 없는 기본 인풋)
-    * `.input-rounded` (둥근 테두리 인풋, 채팅 입력용 등)
-    * `.textarea-base` (기본 텍스트 에어리어)
-  * **애니메이션 (Animations)**:
-    * `.anim-pop` (등장 시 팝업 스케일 효과)
-    * `.anim-typing` (챗봇 타이핑 로딩 깜빡임)
-
-> 💡 **컴포넌트 시각적 확인**: 프론트엔드 로컬 서버 실행 후 `http://localhost:5173/example` 경로에 접속하면 실제 화면에 렌더링된 모든 공통 서식을 조회하고 테스트해 볼 수 있습니다.
+* **디자인 초안 및 명세**: `docs/design_draft/` 내의 원본 명세서 파일과 `docs/COOPERATION.md` 상단에 요약된 디자인 스타일 분석을 따릅니다.
+* **공통 스타일 시트**: `frontend/src/style.css` 에 정의된 CSS 변수(컬러 토큰) 및 공통 UI 클래스(버튼, 폼, 애니메이션 등)를 적극 활용합니다.
+* **시각적 가이드 (Example)**: 로컬 서버 실행 후 `http://localhost:5173/example` 라우트에 접속하여 렌더링된 컴포넌트들을 눈으로 직접 확인하고, 해당 `.vue` 코드에서 사용법을 차용합니다.
