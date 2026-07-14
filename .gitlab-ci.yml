@@ -6,6 +6,9 @@ sync-to-github:
   image: alpine:latest
   tags:
     - github
+  variables:
+    # 얕은 복제(depth 20)를 비활성화하고 전체 커밋 역사를 가져와 index-pack 오류 방지
+    GIT_DEPTH: 0
   rules:
     # master 브랜치에 푸시되었을 때만 트리거
     - if: '$CI_COMMIT_BRANCH == "master"'
@@ -17,11 +20,10 @@ sync-to-github:
     - git config --global user.name "${GITLAB_USER_NAME}"
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     
-    # 2. GitHub 원격 저장소 추가 (변수는 GitLab 설정에서 등록해야 함)
-    # URL 형식: https://<GitHub_Username>:<GitHub_Personal_Access_Token>@github.com/<Username>/<Repo>.git
+    # 2. GitHub 원격 저장소 추가
     - git remote add github https://${GITHUB_USERNAME}:${GITHUB_PAT}@github.com/${GITHUB_USERNAME}/${GITHUB_REPO_NAME}.git
     
-    # 3. 현재 코드를 GitHub의 master 브랜치로 강제 푸시
-    - git push -f github HEAD:refs/heads/master
+    # 3. 현재 코드를 GitHub의 main 브랜치로 강제 푸시
+    - git push -f github HEAD:refs/heads/main
     
     - echo "✅ GitHub 동기화 완료!"
