@@ -1,0 +1,24 @@
+stages:
+  - sync
+
+sync-to-github:
+  stage: sync
+  image: alpine/git:latest
+  rules:
+    # master 브랜치에 푸시되었을 때만 트리거
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  script:
+    - echo "GitHub 저장소로 자동 동기화(Mirroring)를 시작합니다..."
+    
+    # 1. 안전을 위해 git 설정
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    
+    # 2. GitHub 원격 저장소 추가 (변수는 GitLab 설정에서 등록해야 함)
+    # URL 형식: https://<GitHub_Username>:<GitHub_Personal_Access_Token>@github.com/<Username>/<Repo>.git
+    - git remote add github https://${GITHUB_USERNAME}:${GITHUB_PAT}@github.com/${GITHUB_USERNAME}/${GITHUB_REPO_NAME}.git
+    
+    # 3. 현재 코드를 GitHub의 master 브랜치로 강제 푸시
+    - git push -f github HEAD:master
+    
+    - echo "✅ GitHub 동기화 완료!"
