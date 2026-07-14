@@ -3,13 +3,14 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, shallowRef, watch } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
-const mapInstance = ref(null)
-const clustererInstance = ref(null)
-const markers = ref([]) // 현재 그려진 마커(오버레이)들 보관
+// 지도 인스턴스, 클러스터러, 마커 같은 무거운 객체는 Vue의 Proxy(반응성) 래핑을 피해야 렉이 안 걸립니다.
+const mapInstance = shallowRef(null)
+const clustererInstance = shallowRef(null)
+let markers = [] // 단순 배열로 관리
 
 onMounted(() => {
   initMap()
@@ -98,7 +99,7 @@ const drawMarkers = (locations) => {
 
   // 기존 클러스터러 및 마커 배열 초기화
   clustererInstance.value.clear()
-  markers.value = []
+  markers = []
 
   locations.forEach(loc => {
     // 위도 경도 유효성 검사
@@ -107,48 +108,40 @@ const drawMarkers = (locations) => {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     const color = catColors[loc.category] || '#f15b4c'
 
-    // 커스텀 오버레이로 디자인 명세서의 마커 구현
-    const content = document.createElement('div')
-    content.style.cssText = `
-      width: 28px; height: 28px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      background: ${color};
-      border: 2.5px solid #fff;
-      box-shadow: 0 4px 9px rgba(0,0,0,.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    `
-    const innerDot = document.createElement('span')
-    innerDot.style.cssText = `
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      background: #fff;
-      transform: rotate(45deg);
-    `
-    content.appendChild(innerDot)
+    // CustomOverlay는 클러스터링 시 내부 DOM 에러(Cannot read properties of null)를 유발하므로, 
+    // SVG 이미지를 Data URI로 변환하여 정식 Marker와 MarkerImage를 사용합니다.
+    const svgString = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">
+        <path d="M17 0C7.6 0 0 7.6 0 17c0 12.8 17 25 17 25s17-12.2 17-25C34 7.6 26.4 0 17 0z" fill="${color}" stroke="#ffffff" stroke-width="2.5" filter="drop-shadow(0px 4px 4px rgba(0,0,0,0.3))"/>
+        <circle cx="17" cy="17" r="5" fill="#ffffff"/>
+      </svg>
+    `.trim()
+    const svgUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString)
+    
+    // 카카오맵 마커 이미지 생성
+    const markerImage = new window.kakao.maps.MarkerImage(
+      svgUrl,
+      new window.kakao.maps.Size(34, 42),
+      { offset: new window.kakao.maps.Point(17, 42) } // 마커 좌표에 일치시킬 이미지 안의 좌표 (뾰족한 끝)
+    )
 
-    // 마커 클릭 시 스토어 액션 (예: 선택한 장소 포커스) 연동
-    content.onclick = () => {
-      mapStore.selectLocation(loc)
-      // 클릭한 핀으로 지도 중앙 이동
-      mapInstance.value.panTo(position)
-    }
-
-    const overlay = new window.kakao.maps.CustomOverlay({
+    const marker = new window.kakao.maps.Marker({
       position,
-      content,
-      yAnchor: 1 // 핀의 끝(뾰족한 부분)이 좌표를 가리키도록 설정
+      image: markerImage
+    })
+
+    // 마커 클릭 이벤트 바인딩 (카카오맵 정식 이벤트)
+    window.kakao.maps.event.addListener(marker, 'click', () => {
+      mapStore.selectLocation(loc)
+      mapInstance.value.panTo(position)
     })
 
     // 개별적으로 setMap() 하지 않고 배열에만 모음
-    markers.value.push(overlay)
+    markers.push(marker)
   })
 
   // 클러스터러에 마커들을 한 번에 추가
-  clustererInstance.value.addMarkers(markers.value)
+  clustererInstance.value.addMarkers(markers)
 }
 
 // 스토어의 데이터 변경 감지 (검색, 필터링 등)
