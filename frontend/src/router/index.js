@@ -4,6 +4,7 @@ import PostListView from '../pages/PostListView.vue'
 import PostDetailView from '../pages/PostDetailView.vue'
 import PostEditView from '../pages/PostEditView.vue'
 import MapView from '../pages/MapView.vue'
+import ExampleView from '../pages/ExampleView.vue'
 
 const routes = [
   {
@@ -35,6 +36,11 @@ const routes = [
     path: '/map',
     name: 'Map',
     component: MapView
+  },
+  {
+    path: '/example',
+    name: 'Example',
+    component: ExampleView
   }
 ]
 

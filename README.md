@@ -56,7 +56,7 @@ cp .env.example .env         # 생성된 .env에 OpenAI API Key 등 기재
 python scripts/seed.py       # 로컬 DB 생성 및 시딩
 uvicorn app.main:app --reload
 ```
-* **Swagger API Docs**: `http://localhost:8000/docs`
+* **Swagger API 명세서**: `http://localhost:8000/docs` (API 설계 및 테스트 지원)
 
 ### 2. Frontend (Vue 3)
 ```bash
@@ -65,4 +65,5 @@ npm install
 cp .env.example .env         # 생성된 .env에 Kakao Map Key 등 기재
 npm run dev
 ```
-* **로컬 웹 주소**: `http://localhost:5173`
+* **로컬 프론트 웹**: `http://localhost:5173`
+* **🎨 프론트엔드 디자인 시스템 및 공통 컴포넌트 예제**: `http://localhost:5173/example`
