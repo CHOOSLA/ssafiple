@@ -8,6 +8,7 @@ import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
 const mapInstance = ref(null)
+const clustererInstance = ref(null)
 const markers = ref([]) // 현재 그려진 마커(오버레이)들 보관
 
 onMounted(() => {
@@ -56,6 +57,27 @@ const renderMap = () => {
     level: 7
   }
   mapInstance.value = new window.kakao.maps.Map(container, options)
+  
+  // 마커 클러스터러 생성 (네이버 부동산 스타일)
+  clustererInstance.value = new window.kakao.maps.MarkerClusterer({
+    map: mapInstance.value,
+    averageCenter: true, // 클러스터에 포함된 마커들의 평균 위치를 클러스터 마커 위치로 설정
+    minLevel: 5,         // 클러스터 할 최소 지도 레벨 
+    disableClickZoom: false, // 클러스터 마커 클릭 시 줌 인
+    styles: [{
+      width: '40px', height: '40px',
+      background: 'rgba(241, 91, 76, 0.9)', /* var(--accent) 색상 */
+      borderRadius: '50%',
+      color: '#fff',
+      textAlign: 'center',
+      fontWeight: 'bold',
+      lineHeight: '40px',
+      fontSize: '14px',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+      border: '2px solid #fff'
+    }]
+  })
+  
   console.log("카카오 지도가 성공적으로 렌더링되었습니다.")
 
   // 맵 인스턴스 렌더링 직후 현재 스토어에 있는 위치 핀 찍기
@@ -72,10 +94,10 @@ const catColors = {
 }
 
 const drawMarkers = (locations) => {
-  if (!mapInstance.value || !window.kakao) return
+  if (!mapInstance.value || !window.kakao || !clustererInstance.value) return
 
-  // 기존 마커 전부 지도에서 제거
-  markers.value.forEach(m => m.setMap(null))
+  // 기존 클러스터러 및 마커 배열 초기화
+  clustererInstance.value.clear()
   markers.value = []
 
   locations.forEach(loc => {
@@ -121,9 +143,12 @@ const drawMarkers = (locations) => {
       yAnchor: 1 // 핀의 끝(뾰족한 부분)이 좌표를 가리키도록 설정
     })
 
-    overlay.setMap(mapInstance.value)
+    // 개별적으로 setMap() 하지 않고 배열에만 모음
     markers.value.push(overlay)
   })
+
+  // 클러스터러에 마커들을 한 번에 추가
+  clustererInstance.value.addMarkers(markers.value)
 }
 
 // 스토어의 데이터 변경 감지 (검색, 필터링 등)
