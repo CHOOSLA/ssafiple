@@ -1,208 +1,132 @@
 <template>
   <div class="app-layout">
-    <!-- 글로벌 상단 헤더 네비게이션 -->
-    <header class="app-header">
-      <div class="header-inner">
-        <router-link to="/" class="logo">SSAFIPLE</router-link>
-        <nav class="nav-links">
-          <router-link to="/" active-class="active">홈</router-link>
-          <router-link to="/map" active-class="active">지도</router-link>
-          <router-link to="/posts" active-class="active">게시판</router-link>
-        </nav>
-      </div>
-    </header>
-
-    <!-- 메인 컨텐츠 뷰 렌더링 -->
-    <main class="app-content">
-      <router-view />
-    </main>
-
-    <!-- 전역 AI 챗봇 위젯 (명세 6장 요구사항 준수) -->
-    <div class="chatbot-widget" :class="{ open: isChatOpen }">
-      <button class="chatbot-toggle-btn" @click="toggleChat">
-        <span v-if="!isChatOpen">💬 AI 비서</span>
-        <span v-else>❌ 닫기</span>
-      </button>
-      <div v-if="isChatOpen" class="chatbot-window">
-        <header class="chat-header">
-          <h4>AI 여행 비서</h4>
-        </header>
-        <div class="chat-messages">
-          <div class="message system">안녕하세요! 서울 관광지나 여행에 대해 물어보세요.</div>
-        </div>
-        <div class="chat-input-area">
-          <input type="text" placeholder="메시지를 입력하세요..." />
-          <button>전송</button>
+    <!-- 좌측 60% 패널: 동적 라우팅 영역 (목록, 상세, 글쓰기 등) -->
+    <div class="side-panel">
+      <!-- 헤더 (로고, 검색바 등 공통 영역) -->
+      <div class="panel-header">
+        <div class="brand">
+          <span class="logo-icon">L</span>
+          <div>
+            <div class="brand-title">SSAFIPLE</div>
+            <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
+          </div>
         </div>
       </div>
+      
+      <!-- 메인 뷰포트 영역 (RouterView) -->
+      <div class="panel-body">
+        <router-view />
+      </div>
+    </div>
+
+    <!-- 우측 40% 패널: 지도 전역 배경 영역 -->
+    <!-- 지도는 항상 우측 전체 혹은 배경에 깔리게 설정하고, MapView에서 SDK를 초기화할 수 있도록 컨테이너를 둡니다 -->
+    <div class="map-container">
+      <div id="map-root" class="placeholder-map">
+        🗺️ 지도 영역 (feat/map-domain 에서 구현)
+      </div>
+    </div>
+
+    <!-- 우측 하단 플로팅 챗봇 영역 -->
+    <div class="chatbot-widget">
+      <!-- 챗봇 UI 컴포넌트 렌더링 위치 (feat/chat-domain 에서 구현) -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-
-const isChatOpen = ref(false)
-const toggleChat = () => {
-  isChatOpen.value = !isChatOpen.value
-}
+// 앱 전체의 공통 레이아웃 스캐폴딩
 </script>
 
-<style>
-/* CSS 초기화 및 전역 폰트/레이아웃 설정 */
-body {
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f7fafc;
-  color: #2d3748;
+<style scoped>
+.app-layout {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
 }
 
-.app-layout {
+.side-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 60%;
+  z-index: 20;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  background: #fff;
+  box-shadow: 2px 0 26px rgba(20,20,19,.16);
 }
 
-.app-header {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+.panel-header {
+  padding: 16px 18px;
+  flex: none;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem 2rem;
+.brand {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 9px;
 }
 
-.logo {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #3182ce;
-  text-decoration: none;
-}
-
-.nav-links {
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--accent);
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: 16px;
 }
 
-.nav-links a {
-  text-decoration: none;
-  color: #4a5568;
-  font-weight: 600;
-  transition: color 0.2s;
+.brand-title {
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
 }
 
-.nav-links a:hover, .nav-links a.active {
-  color: #3182ce;
+.brand-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 3px;
 }
 
-.app-content {
+.panel-body {
   flex: 1;
-}
-
-/* AI 챗봇 위젯 스타일 */
-.chatbot-widget {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  z-index: 999;
-}
-
-.chatbot-toggle-btn {
-  background-color: #3182ce;
-  color: white;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 50px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(49, 130, 206, 0.4);
-  transition: transform 0.2s, background-color 0.2s;
-}
-
-.chatbot-toggle-btn:hover {
-  background-color: #2b6cb0;
-  transform: scale(1.05);
-}
-
-.chatbot-window {
-  position: absolute;
-  bottom: 3.5rem;
-  right: 0;
-  width: 350px;
-  height: 450px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.15);
-  border: 1px solid #e2e8f0;
+  min-height: 0;
+  background: #fff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
-.chat-header {
-  background-color: #3182ce;
-  color: white;
-  padding: 1rem;
+.map-container {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-color);
+  z-index: 10;
 }
 
-.chat-header h4 {
-  margin: 0;
-}
-
-.chat-messages {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
+.placeholder-map {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  background-color: #f7fafc;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--text-muted);
 }
 
-.message {
-  padding: 0.8rem;
-  border-radius: 8px;
-  max-width: 80%;
-  font-size: 0.9rem;
-}
-
-.message.system {
-  background-color: #e2e8f0;
-  color: #2d3748;
-  align-self: flex-start;
-}
-
-.chat-input-area {
-  padding: 0.8rem;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  gap: 0.5rem;
-  background-color: #ffffff;
-}
-
-.chat-input-area input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  outline: none;
-}
-
-.chat-input-area button {
-  background-color: #3182ce;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
+.chatbot-widget {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
 }
 </style>
