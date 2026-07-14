@@ -16,51 +16,42 @@
 
 ---
 
-## 👥 3인 기능 분배 및 브랜치 전략
-Git Merge 시 코드 충돌을 예방하기 위해 **파일 및 컴포넌트 단위를 엄격히 분리**하여 개발을 진행합니다.
+## 👥 3인 기능 분배 및 브랜치 전략 (도메인별 풀스택)
+AI 주도 개발(Agentic Workflow)에 가장 적합하도록, 프론트/백엔드를 나누지 않고 **"도메인 단위(Vertical Slice) 풀스택"**으로 역할을 분배합니다. 각 개발자(AI)는 자신이 맡은 도메인의 프론트엔드 UI부터 백엔드 API, DB 모델까지 완벽히 독립적으로 구현합니다.
 
-### 👨‍💻 개발자 A (프론트엔드 - 지도 및 지리 정보)
+### 👨‍💻 개발자 A (장소 & 지도 도메인 풀스택)
 * **주요 역할**: 
-  * Kakao Maps JS SDK 연동 및 지도 화면 구현 (`/map`)
-  * 지도 상의 카테고리별 핀 마커 렌더링, 오버레이 말풍선 매핑
-  * 좌측 패널의 장소 목록 카드 렌더링 및 카테고리 필터링
+  * [FE] Kakao Maps JS SDK 연동, 핀 마커 렌더링, 장소 목록 및 상세 뷰 구현 (`/map`)
+  * [BE] 장소 조회 및 검색 REST API 구현 (`locations.py`), DB 장소 모델링
   * **[Phase 2] 경로 안내 모드 (마커 다중 선택, Polyline 연결 및 거리 합계 시각화)**
-* **작업 브랜치**: `feat/fe-map`
+* **작업 브랜치**: `feat/map-domain`
 * **독점 작업 파일**:
-  * `frontend/src/pages/MapView.vue`
-  * `frontend/src/stores/routeSelection.js`
-* **충돌 방지 약속**: 게시판 뷰포트 및 챗봇 위젯 코드는 손대지 않고, 지도 연동에만 집중합니다.
+  * `frontend/src/pages/MapView.vue`, `frontend/src/stores/routeSelection.js`
+  * `backend/app/routers/locations.py`, `backend/app/models/location.py`
 
 ---
 
-### 👩‍💻 개발자 B (프론트엔드 - 게시판 및 전역 UI)
+### 👩‍💻 개발자 B (커뮤니티 도메인 풀스택)
 * **주요 역할**:
-  * 게시글 목록(검색 및 페이지네이션 포함), 상세조회(댓글 목록 포함), 작성/수정 폼 화면 구현
-  * 전역 플로팅 챗봇 위젯 컴포넌트(App.vue) 화면 및 애니메이션 구현
-  * **[추가 스펙] 장소별 실시간 익명 채팅(WebSocket) 클라이언트 연동 및 UI 퍼블리싱**
-  * **[Phase 2] 게시글 이미지 첨부 폼 및 UI 연동**
-* **작업 브랜치**: `feat/fe-board`
+  * [FE] 자유게시판 목록, 상세조회, 작성/수정 폼 화면 및 퍼블리싱
+  * [BE] 게시글 및 댓글 CRUD API 구현, 평문 비밀번호 검증 로직 매핑 (`posts.py`, `comments.py`)
+  * **[Phase 2] 게시글 이미지 업로드 API 및 정적 파일 서빙, FE 첨부 폼 연동**
+* **작업 브랜치**: `feat/board-domain`
 * **독점 작업 파일**:
-  * `frontend/src/pages/PostListView.vue`, `PostDetailView.vue`, `PostEditView.vue`
-  * `frontend/src/stores/modal.js`, `frontend/src/stores/chat.js`
-  * `frontend/src/App.vue` (챗봇 전역 플로팅 영역)
-* **충돌 방지 약속**: 백엔드 코드와 지도 뷰 컴포넌트에는 간섭하지 않으며 프론트엔드의 화면 및 상태 관리 구현에 집중합니다.
+  * `frontend/src/pages/PostListView.vue`, `PostDetailView.vue`, `PostEditView.vue`, `frontend/src/stores/modal.js`
+  * `backend/app/routers/posts.py`, `comments.py`, `backend/app/models/post.py`, `comment.py`
 
 ---
 
-### 👨‍💻 개발자 C (백엔드 및 데이터/AI 총괄)
+### 👨‍💻 개발자 C (AI & 실시간 통신 도메인 풀스택)
 * **주요 역할**:
-  * `data/raw/` JSON 8종 분석 및 `seed.py` 데이터베이스 적재/정제 (예외 좌표 필터링 등)
-  * 자유게시판 및 댓글의 CRUD REST API 구현 및 비밀번호 검증 로직 처리
-  * OpenAI API 연동 `/api/chat` 엔드포인트 구현 (장소 및 게시글 데이터 RAG 컨텍스트 연동)
-  * **[추가 스펙] FastAPI WebSocket 기반 장소별 실시간 익명 채팅 서버(Pub/Sub) 파이프라인 구축**
-  * **[Phase 2] 게시글 이미지 업로드 처리 및 정적 파일(Static) 서빙 백엔드**
-* **작업 브랜치**: `feat/be-core`
+  * [Data] `data/raw/` JSON 데이터 분석 및 `seed.py` 데이터베이스 파이프라인 구성
+  * [AI] 전역 플로팅 챗봇 UI(FE) 및 OpenAI 연동 `/api/chat` 엔드포인트 RAG 연동(BE)
+  * [WebSocket] 장소별 실시간 익명 채팅창 프론트엔드 연동(FE) 및 FastAPI Pub/Sub 채널 서버 파이프라인 구축(BE)
+* **작업 브랜치**: `feat/chat-domain`
 * **독점 작업 파일**:
-  * `backend/app/routers/posts.py`, `comments.py`, `chat.py`
-  * `backend/app/models/post.py`, `comment.py`, `location.py`
-  * `backend/scripts/seed.py`
-* **충돌 방지 약속**: 프론트엔드 Vue 코드에는 관여하지 않고, 오직 FastAPI 백엔드 라우터와 DB 모델, 시딩 로직만 독점하여 개발합니다.
+  * `frontend/src/App.vue` (챗봇/채팅 전역 영역), `frontend/src/stores/chat.js`
+  * `backend/scripts/seed.py`, `backend/app/routers/chat.py`
 
 ---
 
