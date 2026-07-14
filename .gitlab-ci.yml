@@ -22,6 +22,6 @@ sync-to-github:
     - git remote add github https://${GITHUB_USERNAME}:${GITHUB_PAT}@github.com/${GITHUB_USERNAME}/${GITHUB_REPO_NAME}.git
     
     # 3. 현재 코드를 GitHub의 master 브랜치로 강제 푸시
-    - git push -f github HEAD:master
+    - git push -f github HEAD:refs/heads/master
     
     - echo "✅ GitHub 동기화 완료!"
