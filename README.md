@@ -13,25 +13,29 @@
 
 ---
 
-## 📂 폴더 구조
+## 📂 폴더 구조 (도메인별 풀스택 적용)
 ```text
 team_project/
-├── docs/                      # 설계 문서 (SCHEMA.md, SOURCE.md)
-├── data/raw/                  # 원본 공공데이터 JSON 파일 보관 (.gitkeep)
+├── docs/                      # 설계 문서 (SCHEMA, SOURCE, 기능명세서 등)
+├── data/raw/                  # 원본 공공데이터 JSON 파일
 ├── frontend/                  # Vue 3 프론트엔드
 │   ├── src/
-│   │   ├── router/            # Vue Router 설정 (페이지 라우팅)
-│   │   ├── stores/            # Pinia 전역 스토어 (chat, modal, routeSelection)
-│   │   └── pages/             # 화면 뷰 컴포넌트 5종
-│   └── public/_redirects      # Netlify 새로고침 404 방지 라우팅 설정
+│   │   ├── components/        # 도메인별 분리된 UI 컴포넌트 (map, board, chat, common)
+│   │   ├── pages/             # 화면 뷰 컴포넌트
+│   │   ├── router/            # Vue Router 설정
+│   │   ├── stores/            # Pinia 전역 스토어 (mapStore, boardStore, chatStore)
+│   │   └── utils/             # 프론트엔드 공통 유틸 (api.js 등)
+│   └── public/_redirects      # Netlify 새로고침 404 방지
 └── backend/                   # FastAPI 백엔드
     ├── app/
-    │   ├── core/config.py     # Pydantic Settings 기반 환경변수 로더
-    │   ├── database.py        # SQLite 연결 & PRAGMA 설정
-    │   ├── models/            # SQLAlchemy 모델 (is_deleted 소프트 딜리트 반영)
-    │   ├── schemas/           # Pydantic DTO 검증 스키마
-    │   └── routers/           # API 라우터 4종 (소프트 딜리트 CASCADE 연쇄 구현)
-    └── scripts/seed.py        # 서울 범위 위경도 assert 검증 & DB 시딩 스크립트
+    │   ├── core/config.py     # 환경변수 로더
+    │   ├── database.py        # SQLite 연결 
+    │   ├── models/            # SQLAlchemy DB 모델
+    │   ├── schemas/           # Pydantic DTO (데이터 검증)
+    │   ├── routers/           # FastAPI 도메인별 API 라우터
+    │   ├── services/          # 비즈니스 로직 (chat_service, seed_service 등)
+    │   └── utils/             # 백엔드 공통 유틸 (websocket_manager 등)
+    └── scripts/seed.py        # DB 시딩 스크립트
 ```
 
 ---
