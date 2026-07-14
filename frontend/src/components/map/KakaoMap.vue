@@ -79,6 +79,14 @@ const renderMap = () => {
     }]
   })
   
+  // 오른쪽 아래(BOTTOMRIGHT)에 확대/축소(Zoom) 버튼 추가
+  const zoomControl = new window.kakao.maps.ZoomControl()
+  mapInstance.value.addControl(zoomControl, window.kakao.maps.ControlPosition.BOTTOMRIGHT)
+
+  // 오른쪽 아래에 몇 미터(m/km) 단위인지 보여주는 축척(Scale) 바 추가
+  const scaleControl = new window.kakao.maps.ScaleControl()
+  mapInstance.value.addControl(scaleControl, window.kakao.maps.ControlPosition.BOTTOMRIGHT)
+  
   console.log("카카오 지도가 성공적으로 렌더링되었습니다.")
 
   // 맵 인스턴스 렌더링 직후 현재 스토어에 있는 위치 핀 찍기
