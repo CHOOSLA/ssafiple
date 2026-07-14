@@ -112,8 +112,8 @@
 
 ## 9. 팀 협업 및 브랜치 규칙
 * **협업 분할 설계**: 3인 개발 체제로 진행되며, 충돌 방지를 위해 [docs/COOPERATION.md](file:///C:/SSAFY/00.StartCamp/team_project/docs/COOPERATION.md) 가이드를 준수합니다.
-* **피처 브랜치(Feature Branch) 명명 규칙 및 역할**:
-  * **지도/지리 정보 및 실시간 채팅 UI** (개발자 A): `feat/fe-map`
-  * **게시판 CRUD API 및 화면** (개발자 B): `feat/board-crud`
-  * **데이터 시드, AI 챗봇 및 실시간 채팅 백엔드** (개발자 C): `feat/be-chatbot-seed`
+* **피처 브랜치(Feature Branch) 명명 규칙**:
+  * 지도/지리 정보 영역 (개발자 A): `feat/fe-map`
+  * 게시판 CRUD 영역 (개발자 B): `feat/board-crud`
+  * 데이터 시드 및 AI 챗봇 영역 (개발자 C): `feat/be-chatbot-seed`
 * **충돌 방지 원칙**: 브랜치 병합 시 충돌을 차단하기 위해, 기능 단위 폴더 및 화면 파일 단위로 역할을 명확히 분리하여 작업합니다.
