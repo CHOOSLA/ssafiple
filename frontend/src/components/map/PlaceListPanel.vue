@@ -38,9 +38,12 @@
           @click="mapStore.selectLocation(loc)"
         >
           <!-- 왼쪽 썸네일 공간 -->
-          <span class="place-thumb">
+          <span 
+            class="place-thumb" 
+            :style="loc.image_url ? { backgroundImage: `url(${loc.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}"
+          >
             <span class="cat-badge" :style="{ backgroundColor: getCatColor(loc.category) }">{{ loc.category || '기타' }}</span>
-            <span class="thumb-text">PHOTO</span>
+            <span v-if="!loc.image_url" class="thumb-text">NO PHOTO</span>
           </span>
 
           <!-- 중앙 장소 정보 -->
@@ -55,13 +58,19 @@
             <span class="empty-preview">게시글 연동 전입니다</span>
           </span>
         </button>
+        
+        <!-- 무한 스크롤 관찰 요소 -->
+        <div ref="observerTarget" class="observer-trigger">
+          <span v-if="mapStore.isFetchingMore">추가 데이터를 불러오는 중...</span>
+          <span v-else-if="!mapStore.hasMore && mapStore.locations.length > 0">모든 장소를 불러왔습니다.</span>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
@@ -83,8 +92,28 @@ const handleSearch = () => {
   mapStore.fetchLocations(null, searchQuery.value)
 }
 
+const observerTarget = ref(null)
+let observer = null
+
 onMounted(() => {
   mapStore.fetchLocations()
+  
+  // 무한 스크롤 옵저버 설정
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && mapStore.hasMore && !mapStore.isFetchingMore && !mapStore.isLoading) {
+      mapStore.fetchMoreLocations()
+    }
+  }, { threshold: 0.5 })
+  
+  if (observerTarget.value) {
+    observer.observe(observerTarget.value)
+  }
+})
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect()
+  }
 })
 </script>
 
@@ -299,5 +328,15 @@ onMounted(() => {
   padding: 40px 0;
   color: #8a877f;
   font-size: 14px;
+}
+
+/* 무한 스크롤 관찰 타겟 */
+.observer-trigger {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #b0ada5;
 }
 </style>
