@@ -101,10 +101,10 @@ const stopDrag = () => {
 /* 크기 조절 핸들 영역 */
 .resizer {
   position: absolute;
-  right: -5px;
+  right: -6px;
   top: 0;
   bottom: 0;
-  width: 10px;
+  width: 12px;
   cursor: col-resize;
   z-index: 30;
   display: flex;
@@ -112,18 +112,33 @@ const stopDrag = () => {
   justify-content: center;
 }
 
+.resizer-handle {
+  width: 4px;
+  height: 48px;
+  background-color: #d1cfc8; /* 기본적으로 잘 보이도록 명도 조절 */
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 핸들 내부에 그립(점 3개)을 그려서 드래그 가능함을 직관적으로 표시 */
+.resizer-handle::after {
+  content: "⋮";
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
 .resizer:hover .resizer-handle,
 .resizer:active .resizer-handle {
   background-color: var(--accent, #f15b4c);
-  width: 4px;
-}
-
-.resizer-handle {
-  width: 2px;
-  height: 40px;
-  background-color: #d9d6cf;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  transform: scaleY(1.1);
 }
 
 .chatbot-container {
