@@ -14,18 +14,19 @@ export const useMapStore = defineStore('map', () => {
   const hasMore = ref(true)
   
   // 현재 검색/필터 상태 캐시
-  const currentQuery = ref({ category: null, q: null })
+  const currentQuery = ref({ category: null, q: null, bbox: null })
 
-  const fetchLocations = async (category = null, q = null) => {
+  const fetchLocations = async (category = null, q = null, bbox = null) => {
     isLoading.value = true
     skip.value = 0
     hasMore.value = true
-    currentQuery.value = { category, q }
+    currentQuery.value = { category, q, bbox }
     
     try {
       const params = { skip: skip.value, limit: limit.value }
       if (category) params.category = category
       if (q) params.q = q
+      if (bbox) Object.assign(params, bbox)
       
       const response = await api.get('/locations/', { params })
       locations.value = response.data
@@ -50,6 +51,7 @@ export const useMapStore = defineStore('map', () => {
       const params = { skip: skip.value, limit: limit.value }
       if (currentQuery.value.category) params.category = currentQuery.value.category
       if (currentQuery.value.q) params.q = currentQuery.value.q
+      if (currentQuery.value.bbox) Object.assign(params, currentQuery.value.bbox)
       
       const response = await api.get('/locations/', { params })
       if (response.data.length > 0) {

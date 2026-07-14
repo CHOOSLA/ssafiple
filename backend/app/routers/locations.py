@@ -11,6 +11,10 @@ router = APIRouter(prefix="/locations", tags=["locations"])
 def list_locations(
     category: Optional[str] = None, 
     q: Optional[str] = None, 
+    sw_lat: Optional[float] = None,
+    sw_lng: Optional[float] = None,
+    ne_lat: Optional[float] = None,
+    ne_lng: Optional[float] = None,
     skip: int = 0,
     limit: int = 50, 
     db: Session = Depends(get_db)
@@ -22,6 +26,11 @@ def list_locations(
         query = query.filter(
             (Location.name.contains(q)) | (Location.address.contains(q))
         )
+    if sw_lat is not None and ne_lat is not None:
+        query = query.filter(Location.latitude >= sw_lat, Location.latitude <= ne_lat)
+    if sw_lng is not None and ne_lng is not None:
+        query = query.filter(Location.longitude >= sw_lng, Location.longitude <= ne_lng)
+        
     return query.offset(skip).limit(limit).all()
 
 @router.get("/{location_id}", response_model=LocationOut)

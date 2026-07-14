@@ -83,14 +83,24 @@ const renderMap = () => {
   const zoomControl = new window.kakao.maps.ZoomControl()
   mapInstance.value.addControl(zoomControl, window.kakao.maps.ControlPosition.BOTTOMRIGHT)
 
-  // 오른쪽 아래에 몇 미터(m/km) 단위인지 보여주는 축척(Scale) 바 추가
-  const scaleControl = new window.kakao.maps.ScaleControl()
-  mapInstance.value.addControl(scaleControl, window.kakao.maps.ControlPosition.BOTTOMRIGHT)
-  
   console.log("카카오 지도가 성공적으로 렌더링되었습니다.")
 
   // 맵 인스턴스 렌더링 직후 현재 스토어에 있는 위치 핀 찍기
   drawMarkers(mapStore.locations)
+  
+  // 지도가 이동/확대/축소 완료될 때(idle)마다 화면에 보이는 범위 내 장소만 검색
+  window.kakao.maps.event.addListener(mapInstance.value, 'idle', () => {
+    const bounds = mapInstance.value.getBounds()
+    const sw = bounds.getSouthWest()
+    const ne = bounds.getNorthEast()
+    
+    mapStore.fetchLocations(null, null, {
+      sw_lat: sw.getLat(),
+      sw_lng: sw.getLng(),
+      ne_lat: ne.getLat(),
+      ne_lng: ne.getLng()
+    })
+  })
 }
 
 // 카테고리별 컬러 매핑 (디자인 명세서 참조)
