@@ -65,6 +65,24 @@ Git Merge 시 코드 충돌을 예방하기 위해 **파일 및 컴포넌트 단
 
 ---
 
+## 🏗️ 브랜치 분기 시점 및 초기 공통 구성 (Base Setup)
+본격적인 3인 병렬 개발(`feat/...` 브랜치 분할)을 시작하기 전, `master` 브랜치에 다음의 **공통 뼈대(Scaffolding)**가 모두 구성되어 있어야 합니다. 이 작업이 선행된 이후에 각자의 브랜치로 나뉘어야 충돌을 최소화할 수 있습니다.
+
+* **[백엔드] 공통 뼈대 구성**:
+  * FastAPI 앱 팩토리 및 라우터 기본 구조 (`main.py`, `routers/`)
+  * SQLite 연동을 위한 SQLAlchemy 기본 설정 (`database.py`)
+  * `posts`, `comments`, `locations` 테이블 생성을 위한 기본 모델 구조 (`models/`)
+  * 공통 환경변수 템플릿 (`.env.example`) 공유
+* **[프론트엔드] 공통 뼈대 구성**:
+  * Vue Router 초기화 및 주요 뷰 빈 컴포넌트 뼈대 생성 (`MapView.vue`, `PostListView.vue`, `PostDetailView.vue` 등)
+  * 디자인 시스템 연동: 글로벌 CSS 변수(`--accent: #f15b4c`, 배경색 등) 및 Pretendard 폰트가 적용된 `style.css` 
+  * Pinia Store 및 전역 Axios 인스턴스 초기화
+
+> **✨ 브랜치 분기 시점 (When to Branch)**:
+> 위의 기초 뼈대 코드가 `master` 브랜치에 모두 병합된 직후, 각 개발자는 `git checkout -b feat/...`를 실행하여 자신의 기능 개발을 시작합니다.
+
+---
+
 ## 🔀 Git Workflow & Merge 규칙
 1. **브랜치 생성**: 반드시 `master` 브랜치로부터 각자의 피처 브랜치(`feat/...`)를 생성합니다.
 2. **독립 개발**: 위의 독점 작업 파일 가이드를 준수하며 서로의 작업 영역을 침범하지 않도록 코딩합니다.
