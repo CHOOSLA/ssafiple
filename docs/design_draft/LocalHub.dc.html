@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;color:#1c1b1a;background:#eef0ea;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  a{color:#f15b4c;text-decoration:none;} a:hover{color:#d8402f;}
+  button,input,textarea{font-family:inherit;}
+  input::placeholder,textarea::placeholder{color:#b4b0a8;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#d9d6cf;border-radius:8px;border:2px solid transparent;background-clip:content-box;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  @keyframes lh-drop{0%{transform:translate(-50%,-150%);opacity:0;}60%{opacity:1;}100%{transform:translate(-50%,-100%);opacity:1;}}
+  @keyframes lh-pop{from{opacity:0;transform:translateY(10px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+  @keyframes lh-blink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" style="position:fixed;inset:0;overflow:hidden;--accent:#f15b4c;">
+
+  <div ref="{{ viewportRef }}" data-screen-label="지도" onPointerDown="{{ onPointerDown }}" onPointerMove="{{ onPointerMove }}" onPointerUp="{{ onPointerUp }}" onPointerLeave="{{ onPointerUp }}" style="position:absolute;inset:0;background:#eef0ea;cursor:grab;user-select:none;touch-action:none;">
+    <div ref="{{ mapInnerRef }}" style="position:absolute;top:0;left:0;width:2000px;height:1300px;transform-origin:0 0;will-change:transform;">
+      <div ref="{{ mapArtRef }}" style="position:absolute;inset:0;pointer-events:none;"></div>
+      <sc-for list="{{ pins }}" as="p" hint-placeholder-count="10">
+        <button type="button" onClick="{{ p.onSelect }}" title="{{ p.name }}" style="position:absolute;left:{{ p.left }}%;top:{{ p.top }}%;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;border:none;background:none;padding:0;cursor:pointer;z-index:{{ p.z }};opacity:{{ p.op }};animation:lh-drop .45s cubic-bezier(.22,.61,.36,1) both;">
+          <sc-if value="{{ p.active }}" hint-placeholder-val="{{ false }}">
+            <span style="margin-bottom:7px;background:#1c1b1a;color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:9px;box-shadow:0 4px 12px rgba(0,0,0,.28);white-space:nowrap;">{{ p.name }}</span>
+          </sc-if>
+          <span style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(45deg);background:{{ p.catColor }};border:2.5px solid #fff;box-shadow:0 4px 9px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;">
+            <span style="width:9px;height:9px;border-radius:50%;background:#fff;transform:rotate(-45deg);"></span>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position:absolute;top:24px;right:24px;z-index:30;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(20,20,19,.14);overflow:hidden;">
+    <button type="button" onClick="{{ zoomIn }}" style="width:44px;height:44px;border:none;background:#fff;font-size:22px;cursor:pointer;color:#3a3833;border-bottom:1px solid #f0eee9;" style-hover="background:#f7f6f3;">+</button>
+    <button type="button" onClick="{{ zoomOut }}" style="width:44px;height:44px;border:none;background:#fff;font-size:24px;cursor:pointer;color:#3a3833;line-height:1;" style-hover="background:#f7f6f3;">−</button>
+  </div>
+
+  <div style="position:absolute;left:0;top:0;bottom:0;width:60%;z-index:20;display:flex;flex-direction:column;background:#fff;box-shadow:2px 0 26px rgba(20,20,19,.16);">
+
+    <div style="padding:16px 18px;flex:none;border-bottom:1px solid #eceae6;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="width:28px;height:28px;border-radius:9px;background:var(--accent,#f15b4c);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;">L</span>
+        <div>
+          <div style="font-weight:800;font-size:16px;line-height:1;">{{ brandName }}</div>
+          <div style="font-size:11px;color:#a8a49b;margin-top:3px;">서울 여행 정보 커뮤니티</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;background:#f4f2ee;border-radius:11px;padding:10px 12px;margin-top:13px;">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2"/><line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round"/></svg>
+        <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="장소, 주소 검색" style="border:none;background:none;outline:none;flex:1;font-size:14px;color:#1c1b1a;min-width:0;" />
+      </div>
+    </div>
+
+    <div style="flex:1;min-height:0;background:#fff;display:flex;flex-direction:column;overflow:hidden;">
+
+      <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="장소 목록" style="display:flex;flex-direction:column;height:100%;">
+          <div style="padding:14px 16px 10px;flex:none;border-bottom:1px solid #f0eee9;font-size:13px;color:#8a877f;">주변 장소 <span style="color:#1c1b1a;font-weight:700;">{{ placeCount }}</span>곳 · 핀을 눌러 탐색하세요</div>
+          <div ref="{{ panelBodyRef }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;">
+            <sc-for list="{{ listItems }}" as="it" hint-placeholder-count="8">
+              <button type="button" onClick="{{ it.onOpen }}" style="display:flex;gap:14px;width:100%;min-width:0;text-align:left;background:none;border:none;border-bottom:1px solid #f0eee9;padding:18px;cursor:pointer;align-items:stretch;box-sizing:border-box;" style-hover="background:#faf9f6;">
+                <span style="width:132px;height:132px;flex:none;border-radius:13px;background:repeating-linear-gradient(45deg,#e9e7e0,#e9e7e0 9px,#f2f1ec 9px,#f2f1ec 18px);border:1px solid #ece9e2;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:hidden;">
+                  <span style="position:absolute;top:9px;left:9px;font-size:11px;font-weight:700;color:#fff;background:{{ it.catColor }};padding:3px 9px;border-radius:16px;">{{ it.cat }}</span>
+                  <span style="margin-bottom:10px;font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;color:#aaa69d;letter-spacing:.04em;">PHOTO</span>
+                </span>
+                <span style="width:150px;flex:none;min-width:0;display:flex;flex-direction:column;">
+                  <span style="font-weight:800;font-size:17px;">{{ it.name }}</span>
+                  <span style="display:block;font-size:12.5px;color:#8a877f;margin-top:7px;line-height:1.45;">{{ it.address }}</span>
+                  <span style="display:block;font-size:12px;color:#b0ada5;margin-top:auto;">게시글 {{ it.postCount }}</span>
+                </span>
+                <span style="flex:1 1 0;min-width:0;display:flex;gap:10px;overflow:hidden;">
+                  <sc-for list="{{ it.preview }}" as="pv" hint-placeholder-count="2">
+                    <span style="flex:1 1 0;min-width:0;height:132px;border:1px solid #eceae6;border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;background:#fcfbf9;overflow:hidden;">
+                      <span style="font-weight:700;font-size:13px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ pv.title }}</span>
+                      <span style="font-size:12px;color:#8a877f;margin-top:7px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ pv.snippet }}</span>
+                      <span style="font-size:11px;color:#b0ada5;margin-top:auto;">댓글 {{ pv.commentCount }}</span>
+                    </span>
+                  </sc-for>
+                  <sc-if value="{{ it.previewEmpty }}" hint-placeholder-val="{{ false }}">
+                    <span style="flex:1;min-width:0;height:132px;border:1px dashed #e3e0d9;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:12.5px;color:#c2bfb7;text-align:center;padding:0 10px;">아직 게시글이 없어요</span>
+                  </sc-if>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPlace }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="장소 상세" style="display:flex;flex-direction:column;height:100%;">
+          <div style="position:relative;height:152px;flex:none;background:repeating-linear-gradient(45deg,#e6e4dd,#e6e4dd 11px,#f0efea 11px,#f0efea 22px);">
+            <button type="button" onClick="{{ closePanel }}" style="position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.94);border:none;box-shadow:0 2px 8px rgba(0,0,0,.16);cursor:pointer;font-size:22px;line-height:1;color:#1c1b1a;padding:0;">‹</button>
+            <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;color:#aaa69d;letter-spacing:.04em;">PHOTO · {{ placeName }}</span>
+          </div>
+          <div style="padding:15px 16px 13px;flex:none;border-bottom:1px solid #f0eee9;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:21px;font-weight:800;">{{ placeName }}</span>
+              <span style="font-size:12px;font-weight:700;color:{{ placeCatColor }};background:#f6f5f2;padding:3px 9px;border-radius:20px;">{{ placeCat }}</span>
+            </div>
+            <div style="margin-top:9px;color:#6b6864;font-size:13.5px;line-height:1.5;">{{ placeAddress }}</div>
+          </div>
+          <div style="display:flex;border-bottom:1px solid #eceae6;flex:none;">
+            <button type="button" onClick="{{ setTabPosts }}" style="flex:1;padding:13px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:700;color:{{ postsTabColor }};border-bottom:2.5px solid {{ postsTabBorder }};">게시글 {{ placePostCount }}</button>
+            <button type="button" onClick="{{ setTabChat }}" style="flex:1;padding:13px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:700;color:{{ chatTabColor }};border-bottom:2.5px solid {{ chatTabBorder }};">실시간 채팅</button>
+          </div>
+
+          <sc-if value="{{ isPostsTab }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;justify-content:flex-end;padding:11px 16px 8px;flex:none;">
+              <button type="button" onClick="{{ openCreate }}" style="display:flex;align-items:center;gap:5px;background:var(--accent,#f15b4c);color:#fff;border:none;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(241,91,76,.32);" style-hover="filter:brightness(1.06);"><span style="font-size:16px;line-height:1;">+</span>글쓰기</button>
+            </div>
+            <div ref="{{ panelBodyRef }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;">
+              <sc-if value="{{ hasPosts }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ postItems }}" as="po" hint-placeholder-count="2">
+                  <button type="button" onClick="{{ po.onOpen }}" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #f4f2ee;padding:15px 16px;cursor:pointer;" style-hover="background:#faf9f6;">
+                    <span style="display:block;font-weight:700;font-size:14.5px;line-height:1.4;">{{ po.title }}</span>
+                    <span style="display:block;font-size:13px;color:#6b6864;margin-top:5px;line-height:1.55;">{{ po.snippet }}</span>
+                    <span style="display:flex;gap:10px;font-size:11.5px;color:#b0ada5;margin-top:9px;">
+                      <span>{{ po.author }}</span><span>{{ po.dateStr }}</span><span>댓글 {{ po.commentCount }}</span>
+                    </span>
+                  </button>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ postsEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:52px 20px;text-align:center;">
+                  <div style="font-size:14px;color:#8a877f;">아직 등록된 게시글이 없어요.</div>
+                  <div style="font-size:12.5px;color:#b0ada5;margin-top:6px;">첫 게시글을 남겨보세요.</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isChatTab }}" hint-placeholder-val="{{ false }}">
+            <div ref="{{ placeChatBodyRef }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#f7f6f3;padding:16px 18px;">
+              <div style="text-align:center;font-size:11.5px;color:#b0ada5;margin-bottom:16px;">이 장소를 여행 중인 사람들과 실시간으로 이야기해보세요</div>
+              <sc-for list="{{ placeChat }}" as="m" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;align-items:{{ m.align }};margin-bottom:12px;">
+                  <sc-if value="{{ m.showName }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-size:11px;color:#a8a49b;margin:0 4px 3px;">{{ m.author }}</span>
+                  </sc-if>
+                  <span style="max-width:72%;background:{{ m.bg }};color:{{ m.color }};padding:9px 13px;border-radius:15px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;box-shadow:0 1px 2px rgba(0,0,0,.05);">{{ m.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px;padding:12px;border-top:1px solid #eceae6;background:#fff;flex:none;">
+              <input value="{{ placeChatInput }}" onChange="{{ onPlaceChatInput }}" onKeyDown="{{ onPlaceChatKey }}" placeholder="익명으로 채팅 보내기" style="flex:1;border:1px solid #e3e0d9;border-radius:22px;padding:11px 15px;font-size:13.5px;outline:none;min-width:0;" />
+              <button type="button" onClick="{{ sendPlaceChat }}" style="width:44px;height:44px;border-radius:50%;background:var(--accent,#f15b4c);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="4,3 22,12 4,21 4,14 15,12 4,10"/></svg>
+              </button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="게시글 상세" style="display:flex;flex-direction:column;height:100%;">
+          <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #f0eee9;flex:none;">
+            <button type="button" onClick="{{ backToPlace }}" style="width:32px;height:32px;border-radius:50%;background:#f4f2ee;border:none;cursor:pointer;font-size:20px;line-height:1;color:#1c1b1a;padding:0;">‹</button>
+            <span style="font-size:13px;color:#6b6864;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ placeName }}</span>
+          </div>
+          <div ref="{{ panelBodyRef }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;">
+            <div style="padding:18px 18px 6px;">
+              <div style="font-size:19px;font-weight:800;line-height:1.4;">{{ postTitle }}</div>
+              <div style="display:flex;gap:10px;font-size:12px;color:#b0ada5;margin-top:10px;"><span>{{ postAuthor }}</span><span>{{ postDate }}</span></div>
+              <div style="font-size:14.5px;line-height:1.75;color:#333;margin-top:16px;white-space:pre-wrap;">{{ postBody }}</div>
+            </div>
+            <div style="height:8px;background:#f6f5f2;margin-top:14px;"></div>
+            <div style="padding:15px 18px 6px;font-weight:700;font-size:14px;">댓글 <span style="color:var(--accent,#f15b4c);">{{ detailCommentCount }}</span></div>
+            <sc-if value="{{ hasComments }}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{ comments }}" as="c" hint-placeholder-count="2">
+                <div style="padding:12px 18px;border-bottom:1px solid #f4f2ee;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                    <span style="font-size:12.5px;font-weight:700;color:#6b6864;">{{ c.author }}</span>
+                    <span style="font-size:11.5px;color:#c2bfb7;">{{ c.date }}</span>
+                  </div>
+                  <div style="font-size:13.5px;line-height:1.6;margin-top:5px;color:#2a2825;">{{ c.content }}</div>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ noComments }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:26px 18px;color:#b0ada5;font-size:13px;text-align:center;">첫 댓글을 남겨보세요.</div>
+            </sc-if>
+          </div>
+          <div style="display:flex;gap:8px;padding:12px;border-top:1px solid #eceae6;background:#fff;flex:none;">
+            <input value="{{ commentInput }}" onChange="{{ onCommentInput }}" onKeyDown="{{ onCommentKey }}" placeholder="익명으로 댓글 남기기" style="flex:1;border:1px solid #e3e0d9;border-radius:11px;padding:11px 13px;font-size:13.5px;outline:none;min-width:0;" />
+            <button type="button" onClick="{{ submitComment }}" style="background:var(--accent,#f15b4c);color:#fff;border:none;border-radius:11px;padding:0 17px;font-weight:700;font-size:13.5px;cursor:pointer;flex:none;">등록</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCreate }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="글 작성" style="display:flex;flex-direction:column;height:100%;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid #f0eee9;flex:none;">
+            <button type="button" onClick="{{ cancelCreate }}" style="background:none;border:none;cursor:pointer;font-size:13.5px;color:#6b6864;padding:0;">취소</button>
+            <span style="font-weight:800;font-size:15px;">글쓰기</span>
+            <span style="width:36px;"></span>
+          </div>
+          <div style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 18px;">
+            <div style="font-size:12px;color:#b0ada5;">{{ placeName }}에 남기는 글 · 익명</div>
+            <input value="{{ newTitle }}" onChange="{{ onNewTitle }}" placeholder="제목" style="width:100%;border:none;border-bottom:1px solid #eceae6;padding:12px 0;font-size:17px;font-weight:700;outline:none;margin-top:12px;" />
+            <textarea value="{{ newContent }}" onChange="{{ onNewContent }}" placeholder="내용을 입력하세요. 로그인 없이 익명으로 등록됩니다." style="width:100%;border:none;outline:none;resize:none;height:230px;font-size:14.5px;line-height:1.7;margin-top:14px;color:#2a2825;"></textarea>
+          </div>
+          <div style="display:flex;gap:10px;padding:12px 16px;border-top:1px solid #eceae6;flex:none;">
+            <button type="button" onClick="{{ cancelCreate }}" style="flex:1;background:#f2f1ed;border:none;border-radius:11px;padding:13px;font-weight:700;font-size:14px;color:#6b6864;cursor:pointer;">취소</button>
+            <button type="button" onClick="{{ submitPost }}" disabled="{{ createDisabled }}" style="flex:2;background:var(--accent,#f15b4c);color:#fff;border:none;border-radius:11px;padding:13px;font-weight:700;font-size:14px;cursor:pointer;opacity:{{ createOpacity }};">등록</button>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <div style="position:absolute;left:calc(60% + 16px);bottom:16px;z-index:15;background:rgba(255,255,255,.86);backdrop-filter:blur(4px);border-radius:9px;padding:7px 11px;font-size:11px;color:#8a877f;max-width:360px;line-height:1.45;pointer-events:none;">이 서비스는 한국관광공사 TourAPI 4.0 데이터를 활용했습니다 · 공공누리 제3유형</div>
+
+  <sc-if value="{{ showChatbot }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;right:24px;bottom:24px;z-index:40;display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+      <sc-if value="{{ chatOpen }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="챗봇" style="width:362px;height:524px;background:#fff;border-radius:18px;box-shadow:0 14px 44px rgba(20,20,19,.24);display:flex;flex-direction:column;overflow:hidden;animation:lh-pop .2s ease both;">
+          <div style="background:var(--accent,#f15b4c);color:#fff;padding:15px 16px;display:flex;align-items:center;justify-content:space-between;flex:none;">
+            <div>
+              <div style="font-weight:800;font-size:15px;">여행 도우미</div>
+              <div style="font-size:11.5px;opacity:.88;margin-top:2px;">서울 관광 정보를 물어보세요</div>
+            </div>
+            <button type="button" onClick="{{ toggleChat }}" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:15px;cursor:pointer;padding:0;">✕</button>
+          </div>
+          <div ref="{{ chatBodyRef }}" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:#f7f6f3;padding:16px 14px;">
+            <sc-for list="{{ chatMsgs }}" as="m" hint-placeholder-count="1">
+              <div style="display:flex;justify-content:{{ m.wrap }};margin-bottom:10px;">
+                <div style="max-width:78%;background:{{ m.bg }};color:{{ m.color }};padding:9px 13px;border-radius:15px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;box-shadow:0 1px 2px rgba(0,0,0,.05);">{{ m.text }}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ chatTyping }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;justify-content:flex-start;margin-bottom:10px;">
+                <div style="background:#eeece7;padding:12px 15px;border-radius:15px;display:flex;gap:5px;align-items:center;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:#a8a49b;animation:lh-blink 1.2s infinite;"></span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:#a8a49b;animation:lh-blink 1.2s infinite;animation-delay:.2s;"></span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:#a8a49b;animation:lh-blink 1.2s infinite;animation-delay:.4s;"></span>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <div style="display:flex;gap:6px;padding:9px 12px;overflow-x:auto;border-top:1px solid #f0eee9;flex:none;">
+            <sc-for list="{{ chatQuick }}" as="q" hint-placeholder-count="3">
+              <button type="button" onClick="{{ q.onClick }}" style="white-space:nowrap;background:#f4f2ee;border:1px solid #e8e5de;border-radius:16px;padding:6px 12px;font-size:12px;color:#4a4843;cursor:pointer;" style-hover="background:#eceae4;">{{ q.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px;padding:11px 12px;border-top:1px solid #eceae6;flex:none;">
+            <input value="{{ chatInput }}" onChange="{{ onChatInput }}" onKeyDown="{{ onChatKey }}" placeholder="메시지를 입력하세요" style="flex:1;border:1px solid #e3e0d9;border-radius:22px;padding:10px 15px;font-size:13.5px;outline:none;min-width:0;" />
+            <button type="button" onClick="{{ sendChat }}" style="width:42px;height:42px;border-radius:50%;background:var(--accent,#f15b4c);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="4,3 22,12 4,21 4,14 15,12 4,10"/></svg>
+            </button>
+          </div>
+        </div>
+      </sc-if>
+      <button type="button" onClick="{{ toggleChat }}" style="width:60px;height:60px;border-radius:50%;background:var(--accent,#f15b4c);border:none;box-shadow:0 8px 24px rgba(241,91,76,.42);cursor:pointer;display:flex;align-items:center;justify-content:center;" style-hover="filter:brightness(1.06);">
+        <svg width="28" height="28" viewBox="0 0 28 28"><rect x="4" y="5" width="20" height="14" rx="4" fill="#fff"/><rect x="9" y="17" width="6" height="6" rx="1" transform="rotate(45 12 20)" fill="#fff"/><circle cx="10" cy="12" r="1.7" fill="var(--accent,#f15b4c)"/><circle cx="14" cy="12" r="1.7" fill="var(--accent,#f15b4c)"/><circle cx="18" cy="12" r="1.7" fill="var(--accent,#f15b4c)"/></svg>
+      </button>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:800},&quot;brandName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;LocalHub&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#f15b4c&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#f15b4c&quot;,&quot;#2f7d5b&quot;,&quot;#2a6fdb&quot;,&quot;#e0913a&quot;]},&quot;showChatbot&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  catColors = { '관광지':'#f15b4c', '음식점':'#ef8a3c', '문화시설':'#3f8fd0', '쇼핑':'#8a6fd6', '숙박':'#5aa06a' };
+
+  places = [
+    {id:1, name:'경복궁', cat:'관광지', address:'서울 종로구 사직로 161', x:770, y:430},
+    {id:2, name:'창덕궁', cat:'관광지', address:'서울 종로구 율곡로 99', x:930, y:400},
+    {id:3, name:'북촌한옥마을', cat:'관광지', address:'서울 종로구 계동길 37', x:848, y:350},
+    {id:4, name:'인사동', cat:'쇼핑', address:'서울 종로구 인사동길 62', x:825, y:478},
+    {id:5, name:'광장시장', cat:'음식점', address:'서울 종로구 창경궁로 88', x:988, y:500},
+    {id:6, name:'남산서울타워', cat:'관광지', address:'서울 용산구 남산공원길 105', x:848, y:648},
+    {id:7, name:'명동거리', cat:'쇼핑', address:'서울 중구 명동8길 27', x:820, y:565},
+    {id:8, name:'동대문디자인플라자', cat:'문화시설', address:'서울 중구 을지로 281', x:1088, y:522},
+    {id:9, name:'홍대 거리', cat:'음식점', address:'서울 마포구 양화로 지하 188', x:432, y:470},
+    {id:10, name:'이태원', cat:'음식점', address:'서울 용산구 이태원로 145', x:715, y:668},
+    {id:11, name:'여의도한강공원', cat:'관광지', address:'서울 영등포구 여의동로 330', x:472, y:808},
+    {id:12, name:'롯데월드타워', cat:'관광지', address:'서울 송파구 올림픽로 300', x:1332, y:908},
+    {id:13, name:'강남역', cat:'쇼핑', address:'서울 강남구 강남대로 지하 396', x:1020, y:988},
+    {id:14, name:'서울숲', cat:'관광지', address:'서울 성동구 뚝섬로 273', x:1150, y:700},
+  ];
+
+  seed = {
+    1: [
+      {id:101, title:'야간개장 다녀왔어요', content:'경복궁 야간개장 다녀왔는데 조명 켜진 근정전이 정말 멋있었어요. 예매는 빨리 마감되니 서두르시는 걸 추천해요.', author:'익명', date:'2026.07.11', comments:[
+        {id:1, author:'익명1', content:'정보 감사합니다! 예매처가 어디인가요?', date:'2026.07.11'},
+        {id:2, author:'익명2', content:'저도 지난주에 다녀왔는데 분위기 정말 좋았어요', date:'2026.07.12'},
+      ]},
+      {id:102, title:'한복 대여 추천받아요', content:'경복궁 근처에서 한복 빌리려는데 어디가 괜찮을까요? 처음이라 잘 모르겠어요.', author:'익명', date:'2026.07.09', comments:[
+        {id:1, author:'익명1', content:'서촌 쪽 골목에 저렴한 곳 많아요', date:'2026.07.09'},
+      ]},
+    ],
+    5: [
+      {id:501, title:'빈대떡 맛집 줄서서 먹은 후기', content:'광장시장 빈대떡 웨이팅 30분 했는데 먹을 만한 가치 있었어요. 마약김밥도 꼭 드세요.', author:'익명', date:'2026.07.13', comments:[
+        {id:1, author:'익명1', content:'육회도 유명하던데 드셨나요?', date:'2026.07.13'},
+        {id:2, author:'익명2', content:'평일 오후가 그나마 한산해요', date:'2026.07.13'},
+      ]},
+      {id:502, title:'주차 어디에 하나요?', content:'차 가지고 가려는데 근처 주차장 정보 아시는 분 있나요?', author:'익명', date:'2026.07.08', comments:[]},
+    ],
+    6: [
+      {id:601, title:'케이블카 vs 버스 뭐가 나을까요', content:'남산타워 올라가는 방법 중에 케이블카가 나은가요 버스가 나은가요? 노을 시간에 가려고요.', author:'익명', date:'2026.07.10', comments:[
+        {id:1, author:'익명1', content:'노을이면 무조건 일찍 올라가서 자리 잡으세요', date:'2026.07.10'},
+      ]},
+    ],
+    9: [
+      {id:901, title:'평일 저녁 조용한 카페 찾아요', content:'홍대인데 너무 시끄럽지 않고 작업하기 좋은 카페 있을까요?', author:'익명', date:'2026.07.12', comments:[
+        {id:1, author:'익명1', content:'연남동 쪽으로 넘어가면 조용한 데 많아요', date:'2026.07.12'},
+      ]},
+    ],
+    11: [
+      {id:1101, title:'돗자리 피크닉 하기 좋아요', content:'여의도한강공원에서 치맥 피크닉 했는데 최고였어요. 배달도 잘 와서 편했습니다.', author:'익명', date:'2026.07.13', comments:[
+        {id:1, author:'익명1', content:'자전거 대여도 되나요?', date:'2026.07.13'},
+        {id:2, author:'익명2', content:'따릉이 많아서 편해요', date:'2026.07.13'},
+      ]},
+      {id:1102, title:'가을 불꽃축제 명당 질문', content:'가을 불꽃축제 볼 만한 자리 미리 알아두려는데 추천 부탁드려요.', author:'익명', date:'2026.07.05', comments:[]},
+    ],
+    12: [
+      {id:1201, title:'서울스카이 전망대 후기', content:'118층 전망대 다녀왔는데 스카이데크 유리 바닥 아찔해요. 해질녘 시간대로 예약하는 걸 추천합니다.', author:'익명', date:'2026.07.11', comments:[
+        {id:1, author:'익명1', content:'표는 현장구매보다 온라인이 저렴해요', date:'2026.07.11'},
+      ]},
+    ],
+  };
+
+  placeChatSeed = {
+    1: [
+      {author:'익명', text:'지금 경복궁인데 사람 엄청 많네요', mine:false},
+      {author:'익명', text:'수문장 교대식 몇 시에 하나요?', mine:false},
+      {author:'익명', text:'오전 10시, 오후 2시예요!', mine:false},
+    ],
+    11: [
+      {author:'익명', text:'여의도 지금 노을 미쳤어요', mine:false},
+      {author:'익명', text:'돗자리 여분 있으신 분 계신가요?', mine:false},
+    ],
+  };
+
+  state = {
+    view: 'list',
+    placeId: null,
+    postId: null,
+    placeTab: 'posts',
+    category: 'all',
+    search: '',
+    commentInput: '',
+    placeChatInput: '',
+    newTitle: '',
+    newContent: '',
+    posts: this.seed,
+    placeChats: { ...this.placeChatSeed },
+    chatOpen: false,
+    chatInput: '',
+    chatTyping: false,
+    chat: [{ role:'bot', text:'안녕하세요! LocalHub 여행 도우미예요.\n서울에서 가볼 만한 곳이나 맛집을 물어보세요.' }],
+  };
+
+  // ---- refs ----
+  rootRef = (el) => { this.rootEl = el; };
+  viewportRef = (el) => { this.viewport = el; };
+  mapInnerRef = (el) => { this.mapInner = el; };
+  mapArtRef = (el) => { this.mapArt = el; };
+  chatBodyRef = (el) => { this.chatBody = el; };
+  panelBodyRef = (el) => { this.panelBody = el; };
+  placeChatBodyRef = (el) => { this.placeChatBody = el; };
+
+  // ---- transform ----
+  tx = 0; ty = 0; scale = 1;
+  apply(){ if(this.mapInner) this.mapInner.style.transform = `translate3d(${this.tx}px,${this.ty}px,0) scale(${this.scale})`; }
+  centerMap(){
+    if(!this.viewport) return;
+    const r = this.viewport.getBoundingClientRect();
+    this.scale = 1;
+    this.tx = r.width * 0.8 - 900;
+    this.ty = r.height / 2 - 480;
+    this.apply();
+  }
+  panTo(x, y){
+    if(!this.viewport) return;
+    const r = this.viewport.getBoundingClientRect();
+    const panelW = r.width * 0.6;
+    const targetX = panelW + (r.width - panelW) / 2;
+    const targetY = r.height / 2;
+    this.tx = targetX - x * this.scale;
+    this.ty = targetY - y * this.scale;
+    if(this.mapInner) this.mapInner.style.transition = 'transform .45s cubic-bezier(.22,.61,.36,1)';
+    this.apply();
+    setTimeout(() => { if(this.mapInner) this.mapInner.style.transition = ''; }, 480);
+  }
+  setScale(ns){
+    ns = Math.max(0.55, Math.min(2.2, ns));
+    if(!this.viewport){ this.scale = ns; return; }
+    const r = this.viewport.getBoundingClientRect();
+    const cx = r.width/2, cy = r.height/2;
+    const k = ns / this.scale;
+    this.tx = cx - (cx - this.tx) * k;
+    this.ty = cy - (cy - this.ty) * k;
+    this.scale = ns;
+    this.apply();
+  }
+  zoomIn = () => this.setScale(this.scale * 1.25);
+  zoomOut = () => this.setScale(this.scale / 1.25);
+
+  onPointerDown = (e) => {
+    this.dragging = true; this.moved = false;
+    this.px = e.clientX; this.py = e.clientY;
+    this.ox = this.tx; this.oy = this.ty;
+    if(this.viewport) this.viewport.style.cursor = 'grabbing';
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch(_) {}
+  };
+  onPointerMove = (e) => {
+    if(!this.dragging) return;
+    const dx = e.clientX - this.px, dy = e.clientY - this.py;
+    if(Math.abs(dx) + Math.abs(dy) > 4) this.moved = true;
+    this.tx = this.ox + dx; this.ty = this.oy + dy;
+    this.apply();
+  };
+  onPointerUp = () => {
+    if(!this.dragging) return;
+    this.dragging = false;
+    if(this.viewport) this.viewport.style.cursor = 'grab';
+    if(this.moved){ this.justDragged = true; setTimeout(() => { this.justDragged = false; }, 60); }
+  };
+
+  // ---- navigation ----
+  selectPlace(id){
+    if(this.justDragged) return;
+    const pl = this.places.find(p => p.id === id);
+    this.setState({ placeId:id, view:'place', postId:null, placeTab:'posts' });
+    if(pl) this.panTo(pl.x, pl.y);
+  }
+  setTabPosts = () => this.setState({ placeTab:'posts' });
+  setTabChat = () => this.setState({ placeTab:'chat' });
+  onPlaceChatInput = (e) => this.setState({ placeChatInput: e.target.value });
+  onPlaceChatKey = (e) => { if(e.key === 'Enter'){ e.preventDefault(); this.sendPlaceChat(); } };
+  sendPlaceChat = () => {
+    const t = this.state.placeChatInput.trim();
+    if(!t) return;
+    this.setState(s => {
+      const placeChats = { ...s.placeChats };
+      placeChats[s.placeId] = [...(placeChats[s.placeId] || []), { author:'익명', text:t, mine:true }];
+      return { placeChats, placeChatInput:'' };
+    });
+  };
+  closePanel = () => this.setState({ view:'list', placeId:null, postId:null });
+  openPost(id){ this.setState({ view:'postDetail', postId:id }); }
+  backToPlace = () => this.setState({ view:'place', postId:null, commentInput:'' });
+  openCreate = () => this.setState({ view:'postCreate', newTitle:'', newContent:'' });
+  cancelCreate = () => this.setState({ view:'place' });
+
+  onSearch = (e) => this.setState({ search: e.target.value });
+  onCommentInput = (e) => this.setState({ commentInput: e.target.value });
+  onNewTitle = (e) => this.setState({ newTitle: e.target.value });
+  onNewContent = (e) => this.setState({ newContent: e.target.value });
+  onCommentKey = (e) => { if(e.key === 'Enter'){ e.preventDefault(); this.submitComment(); } };
+
+  submitComment = () => {
+    const t = this.state.commentInput.trim();
+    if(!t) return;
+    this.setState(s => {
+      const posts = { ...s.posts };
+      const arr = (posts[s.placeId] || []).map(po => po.id === s.postId
+        ? { ...po, comments:[...po.comments, { id:Date.now(), author:'익명'+(po.comments.length+1), content:t, date:'방금 전' }] }
+        : po);
+      posts[s.placeId] = arr;
+      return { posts, commentInput:'' };
+    });
+  };
+
+  submitPost = () => {
+    const title = this.state.newTitle.trim();
+    const content = this.state.newContent.trim();
+    if(!title || !content) return;
+    const id = Date.now();
+    this.setState(s => {
+      const posts = { ...s.posts };
+      posts[s.placeId] = [{ id, title, content, author:'익명', date:'방금 전', comments:[] }, ...(posts[s.placeId] || [])];
+      return { posts, newTitle:'', newContent:'', view:'postDetail', postId:id };
+    });
+  };
+
+  // ---- chatbot ----
+  toggleChat = () => this.setState(s => ({ chatOpen: !s.chatOpen }));
+  onChatInput = (e) => this.setState({ chatInput: e.target.value });
+  onChatKey = (e) => { if(e.key === 'Enter'){ e.preventDefault(); this.send(); } };
+  sendChat = () => this.send();
+  send(raw){
+    const text = (raw != null ? raw : this.state.chatInput).trim();
+    if(!text || this.state.chatTyping) return;
+    this.setState(s => ({ chat:[...s.chat, { role:'user', text }], chatInput:'', chatTyping:true }));
+    setTimeout(() => {
+      const reply = this.botReply(text);
+      this.setState(s => ({ chat:[...s.chat, { role:'bot', text:reply }], chatTyping:false }));
+    }, 850);
+  }
+  botReply(text){
+    const namesOf = (cat) => this.places.filter(p => p.cat === cat).map(p => p.name);
+    if(/맛집|음식|먹|밥|식당/.test(text)){
+      const f = namesOf('음식점');
+      return `서울의 대표 먹거리 명소로는 ${f.join(', ')} 등이 있어요. 특히 광장시장은 빈대떡·마약김밥으로 유명합니다.`;
+    }
+    if(/한강|여의도|피크닉|산책/.test(text)){
+      return '한강 근처라면 여의도한강공원과 서울숲을 추천해요. 돗자리 피크닉이나 자전거 라이딩 모두 즐기기 좋습니다.';
+    }
+    if(/축제|공연|행사/.test(text)){
+      return '제공되는 관광 데이터에는 축제 일정 정보가 제한적이에요. 대신 명칭과 장소 위주로 안내드릴 수 있어요. 문화행사 공간으로는 동대문디자인플라자(DDP)가 대표적입니다.';
+    }
+    if(/쇼핑|살|선물|기념품/.test(text)){
+      return `쇼핑은 ${namesOf('쇼핑').join(', ')} 지역이 인기예요. 인사동은 전통 기념품, 명동은 화장품·패션 쇼핑에 좋습니다.`;
+    }
+    if(/추천|가볼|어디|관광|여행|명소|코스/.test(text)){
+      const t = namesOf('관광지').slice(0,4);
+      return `서울에서 처음이라면 ${t.join(', ')} 코스를 추천해요. 고궁과 전망 명소를 함께 둘러보기 좋습니다.`;
+    }
+    return '서울 관광지·맛집·쇼핑 정보를 도와드릴 수 있어요. "가볼 만한 곳 추천", "한강 근처 맛집"처럼 물어봐 주세요.';
+  }
+
+  // ---- lifecycle ----
+  componentDidMount(){
+    if(this.mapArt) this.mapArt.innerHTML = this.buildMapSVG();
+    this.centerMap();
+    if(this.props.accent && this.rootEl) this.rootEl.style.setProperty('--accent', this.props.accent);
+  }
+  componentDidUpdate(prevProps, prevState){
+    const s = this.state;
+    if(this.chatBody && (prevState.chat !== s.chat || prevState.chatTyping !== s.chatTyping || prevState.chatOpen !== s.chatOpen)){
+      this.chatBody.scrollTop = this.chatBody.scrollHeight;
+    }
+    if(this.panelBody && (prevState.view !== s.view || prevState.postId !== s.postId || prevState.placeId !== s.placeId)){
+      this.panelBody.scrollTop = 0;
+    }
+    if(this.placeChatBody && (prevState.placeChats !== s.placeChats || prevState.placeTab !== s.placeTab || prevState.placeId !== s.placeId)){
+      this.placeChatBody.scrollTop = this.placeChatBody.scrollHeight;
+    }
+    if(prevProps.accent !== this.props.accent && this.rootEl && this.props.accent){
+      this.rootEl.style.setProperty('--accent', this.props.accent);
+    }
+  }
+
+  buildMapSVG(){
+    const W = 2000, H = 1300;
+    let seed = 7;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    let s = `<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">`;
+    s += `<rect width="${W}" height="${H}" fill="#eef0ea"/>`;
+    // city blocks
+    for(let x=40; x<W; x+=150){
+      for(let y=40; y<H; y+=130){
+        if(rnd() < 0.5){
+          const w = 92 + rnd()*38, h = 68 + rnd()*38;
+          const green = rnd() < 0.16;
+          s += `<rect x="${x}" y="${y}" width="${w.toFixed(0)}" height="${h.toFixed(0)}" rx="4" fill="${green?'#dce6cd':'#e7e2d5'}"/>`;
+        }
+      }
+    }
+    // parks
+    [[850,660,155,110],[472,808,150,78],[1150,700,132,112],[1300,975,150,120]].forEach(([cx,cy,rx,ry]) => {
+      s += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#cfe0be"/>`;
+    });
+    // roads (under river)
+    for(let x=110; x<W; x+=175){ const j=(rnd()-.5)*40; s += `<line x1="${x}" y1="0" x2="${(x+j).toFixed(0)}" y2="${H}" stroke="#ffffff" stroke-width="9"/>`; }
+    for(let y=115; y<H; y+=140){ s += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#ffffff" stroke-width="9"/>`; }
+    s += `<line x1="0" y1="465" x2="${W}" y2="520" stroke="#f6d98a" stroke-width="16"/>`;
+    s += `<line x1="0" y1="595" x2="${W}" y2="565" stroke="#f6d98a" stroke-width="14"/>`;
+    s += `<line x1="815" y1="0" x2="905" y2="${H}" stroke="#f6d98a" stroke-width="16"/>`;
+    s += `<line x1="0" y1="120" x2="${W}" y2="300" stroke="#f6d98a" stroke-width="12"/>`;
+    // Han river
+    s += `<path d="M-50 740 C 300 690 520 835 820 795 C 1120 755 1350 720 2050 775 L 2050 895 C 1350 845 1120 905 820 930 C 520 955 300 815 -50 865 Z" fill="#aecfe0"/>`;
+    // bridges
+    [430,760,1050,1330].forEach(x => { s += `<line x1="${x}" y1="705" x2="${x+30}" y2="955" stroke="#ffffff" stroke-width="12"/>`; });
+    s += `</svg>`;
+    return s;
+  }
+
+  renderVals(){
+    const s = this.state;
+    const q = s.search.trim();
+    const matches = (p) => (s.category === 'all' || p.cat === s.category) && (!q || p.name.includes(q) || p.address.includes(q));
+
+    const pins = this.places.map(p => ({
+      name: p.name,
+      left: (p.x / 2000 * 100).toFixed(2),
+      top: (p.y / 1300 * 100).toFixed(2),
+      catColor: this.catColors[p.cat] || '#f15b4c',
+      active: p.id === s.placeId,
+      z: p.id === s.placeId ? 60 : 5,
+      op: matches(p) ? 1 : 0.28,
+      onSelect: () => this.selectPlace(p.id),
+    }));
+
+    const listItems = this.places.filter(matches).map(p => {
+      const pl = s.posts[p.id] || [];
+      return {
+        name:p.name, cat:p.cat, address:p.address,
+        catColor: this.catColors[p.cat] || '#f15b4c',
+        postCount: pl.length,
+        previewEmpty: pl.length === 0,
+        preview: pl.slice(0,2).map(po => ({
+          title: po.title,
+          snippet: po.content.length > 44 ? po.content.slice(0,44) + '…' : po.content,
+          commentCount: po.comments.length,
+        })),
+        onOpen: () => this.selectPlace(p.id),
+      };
+    });
+
+    const place = this.places.find(p => p.id === s.placeId) || null;
+    const placePosts = place ? (s.posts[place.id] || []) : [];
+    const postItems = placePosts.map(po => ({
+      title: po.title, author: po.author, dateStr: po.date,
+      snippet: po.content.length > 62 ? po.content.slice(0,62) + '…' : po.content,
+      commentCount: po.comments.length,
+      onOpen: () => this.openPost(po.id),
+    }));
+    const post = placePosts.find(po => po.id === s.postId) || null;
+    const comments = post ? post.comments : [];
+
+    const rawChat = place ? (s.placeChats[place.id] || []) : [];
+    const placeChat = rawChat.map((m, i, arr) => ({
+      text: m.text, author: m.author,
+      align: m.mine ? 'flex-end' : 'flex-start',
+      bg: m.mine ? 'var(--accent,#f15b4c)' : '#ffffff',
+      color: m.mine ? '#fff' : '#1c1b1a',
+      showName: !m.mine && (i === 0 || arr[i-1].mine),
+    }));
+    const pt = s.placeTab;
+
+    const chatMsgs = s.chat.map(m => ({
+      text: m.text,
+      wrap: m.role === 'user' ? 'flex-end' : 'flex-start',
+      bg: m.role === 'user' ? 'var(--accent,#f15b4c)' : '#ffffff',
+      color: m.role === 'user' ? '#fff' : '#1c1b1a',
+    }));
+    const chatQuick = ['가볼 만한 곳 추천','한강 근처 맛집','요즘 축제 있어?'].map(label => ({
+      label, onClick: () => this.send(label),
+    }));
+
+    const createDisabled = !(s.newTitle.trim() && s.newContent.trim());
+
+    return {
+      brandName: this.props.brandName ?? 'LocalHub',
+      showChatbot: this.props.showChatbot ?? true,
+      rootRef:this.rootRef, viewportRef:this.viewportRef, mapInnerRef:this.mapInnerRef, mapArtRef:this.mapArtRef,
+      chatBodyRef:this.chatBodyRef, panelBodyRef:this.panelBodyRef,
+      onPointerDown:this.onPointerDown, onPointerMove:this.onPointerMove, onPointerUp:this.onPointerUp,
+      zoomIn:this.zoomIn, zoomOut:this.zoomOut,
+      search:s.search, onSearch:this.onSearch,
+      pins,
+      isList: s.view === 'list',
+      isPlace: s.view === 'place',
+      isDetail: s.view === 'postDetail',
+      isCreate: s.view === 'postCreate',
+      placeCount: listItems.length,
+      listItems,
+      placeName: place ? place.name : '',
+      placeCat: place ? place.cat : '',
+      placeCatColor: place ? (this.catColors[place.cat] || '#f15b4c') : '#f15b4c',
+      placeAddress: place ? place.address : '',
+      placePostCount: placePosts.length,
+      postItems,
+      hasPosts: placePosts.length > 0,
+      postsEmpty: placePosts.length === 0,
+      openCreate:this.openCreate, closePanel:this.closePanel,
+      isPostsTab: pt === 'posts',
+      isChatTab: pt === 'chat',
+      setTabPosts:this.setTabPosts, setTabChat:this.setTabChat,
+      postsTabColor: pt === 'posts' ? '#1c1b1a' : '#a8a49b',
+      postsTabBorder: pt === 'posts' ? 'var(--accent,#f15b4c)' : 'transparent',
+      chatTabColor: pt === 'chat' ? '#1c1b1a' : '#a8a49b',
+      chatTabBorder: pt === 'chat' ? 'var(--accent,#f15b4c)' : 'transparent',
+      placeChat, placeChatBodyRef:this.placeChatBodyRef,
+      placeChatInput:s.placeChatInput, onPlaceChatInput:this.onPlaceChatInput,
+      onPlaceChatKey:this.onPlaceChatKey, sendPlaceChat:this.sendPlaceChat,
+      postTitle: post ? post.title : '',
+      postBody: post ? post.content : '',
+      postAuthor: post ? post.author : '',
+      postDate: post ? post.date : '',
+      detailCommentCount: comments.length,
+      comments,
+      hasComments: comments.length > 0,
+      noComments: comments.length === 0,
+      commentInput:s.commentInput, onCommentInput:this.onCommentInput, onCommentKey:this.onCommentKey, submitComment:this.submitComment,
+      backToPlace:this.backToPlace,
+      newTitle:s.newTitle, newContent:s.newContent, onNewTitle:this.onNewTitle, onNewContent:this.onNewContent,
+      submitPost:this.submitPost, cancelCreate:this.cancelCreate,
+      createDisabled, createOpacity: createDisabled ? 0.5 : 1,
+      chatOpen:s.chatOpen, toggleChat:this.toggleChat,
+      chatMsgs, chatTyping:s.chatTyping, chatInput:s.chatInput,
+      onChatInput:this.onChatInput, onChatKey:this.onChatKey, sendChat:this.sendChat, chatQuick,
+    };
+  }
+}
+</script>
+</body>
+</html>
