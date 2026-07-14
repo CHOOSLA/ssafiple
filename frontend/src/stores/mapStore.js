@@ -29,13 +29,15 @@ export const useMapStore = defineStore('map', () => {
       if (bbox) Object.assign(params, bbox)
       
       const response = await api.get('/locations/', { params })
-      locations.value = response.data
+      const data = Array.isArray(response?.data) ? response.data : []
+      locations.value = data
       
-      if (response.data.length < limit.value) {
+      if (data.length < limit.value) {
         hasMore.value = false
       }
     } catch (error) {
       console.error('장소 목록 불러오기 실패:', error)
+      locations.value = []
     } finally {
       isLoading.value = false
     }

@@ -113,7 +113,7 @@ const catColors = {
 }
 
 const drawMarkers = (locations) => {
-  if (!mapInstance.value || !window.kakao || !clustererInstance.value) return
+  if (!mapInstance.value || !window.kakao || !clustererInstance.value || !Array.isArray(locations)) return
 
   // 기존 클러스터러 및 마커 배열 초기화
   clustererInstance.value.clear()
