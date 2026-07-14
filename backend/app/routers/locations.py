@@ -8,11 +8,20 @@ from app.schemas import LocationOut
 router = APIRouter(prefix="/locations", tags=["locations"])
 
 @router.get("/", response_model=List[LocationOut])
-def list_locations(category: Optional[str] = None, db: Session = Depends(get_db)):
+def list_locations(
+    category: Optional[str] = None, 
+    q: Optional[str] = None, 
+    limit: int = 500, 
+    db: Session = Depends(get_db)
+):
     query = db.query(Location)
     if category:
         query = query.filter(Location.category == category)
-    return query.all()
+    if q:
+        query = query.filter(
+            (Location.name.contains(q)) | (Location.address.contains(q))
+        )
+    return query.limit(limit).all()
 
 @router.get("/{location_id}", response_model=LocationOut)
 def get_location(location_id: int, db: Session = Depends(get_db)):
