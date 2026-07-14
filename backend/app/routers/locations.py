@@ -11,7 +11,8 @@ router = APIRouter(prefix="/locations", tags=["locations"])
 def list_locations(
     category: Optional[str] = None, 
     q: Optional[str] = None, 
-    limit: int = 500, 
+    skip: int = 0,
+    limit: int = 50, 
     db: Session = Depends(get_db)
 ):
     query = db.query(Location)
@@ -21,7 +22,7 @@ def list_locations(
         query = query.filter(
             (Location.name.contains(q)) | (Location.address.contains(q))
         )
-    return query.limit(limit).all()
+    return query.offset(skip).limit(limit).all()
 
 @router.get("/{location_id}", response_model=LocationOut)
 def get_location(location_id: int, db: Session = Depends(get_db)):
