@@ -29,16 +29,16 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import KakaoMap from '@/components/map/KakaoMap.vue'
 
-// 기본 패널 너비는 450px
-const DEFAULT_WIDTH = 450
-const MIN_WIDTH = 350
-const MAX_WIDTH = 800
+// 기본 패널 너비를 내용물이 넉넉하게 보이도록 550px로 지정
+const DEFAULT_WIDTH = 550
+const MIN_WIDTH = 450
+const MAX_WIDTH = 900
 
 const panelWidth = ref(DEFAULT_WIDTH)
 const isDragging = ref(false)
 
 onMounted(() => {
-  const savedWidth = localStorage.getItem('localhub_panel_width')
+  const savedWidth = localStorage.getItem('localhub_panel_width_v2')
   if (savedWidth) {
     const parsed = parseInt(savedWidth, 10)
     if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) {
@@ -66,7 +66,7 @@ const stopDrag = () => {
     isDragging.value = false
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
-    localStorage.setItem('localhub_panel_width', panelWidth.value)
+    localStorage.setItem('localhub_panel_width_v2', panelWidth.value)
   }
 }
 </script>
