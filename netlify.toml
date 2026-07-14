@@ -5,3 +5,9 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# Vue SPA 새로고침 시 404 에러 방지 (모든 라우트를 index.html로 리다이렉트)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
