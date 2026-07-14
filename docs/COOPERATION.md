@@ -24,11 +24,12 @@ Git Merge 시 코드 충돌을 예방하기 위해 **파일 및 컴포넌트 단
   * Kakao Maps JS SDK 연동 및 지도 화면 구현 (`/map`)
   * 지도 상의 카테고리별 핀 마커 렌더링, 오버레이 말풍선 매핑
   * 좌측 패널의 장소 목록 카드 렌더링 및 카테고리 필터링
+  * **장소 상세 패널 내 '실시간 채팅' 탭 UI/UX 퍼블리싱 및 데이터 연동**
 * **작업 브랜치**: `feat/fe-map`
 * **독점 작업 파일**:
   * `frontend/src/pages/MapView.vue`
   * `frontend/src/stores/routeSelection.js`
-* **충돌 방지 약속**: 게시판 뷰포트 및 챗봇 위젯 코드는 손대지 않고, 지도 연동에만 집중합니다.
+* **충돌 방지 약속**: 게시판 뷰포트 및 전역 챗봇 위젯 코드는 손대지 않고, 지도 및 장소 상세 패널 연동에만 집중합니다.
 
 ---
 
@@ -48,14 +49,15 @@ Git Merge 시 코드 충돌을 예방하기 위해 **파일 및 컴포넌트 단
 ---
 
 ### 👨‍💻 개발자 C (백엔드/프론트엔드 - 데이터 시딩 & AI 챗봇)
-* **주요 역할**:
+* **주요 역할**: 
   * `data/raw/` 원본 JSON 8종 파싱 및 `seed.py` 적재 스크립트 구체화
   * OpenAI API 연동 및 `/api/chat` 엔드포인트 구현 (추후 CHT-01 컨텍스트 필터 적용 예정)
   * 프론트엔드 공통 플로팅 AI 챗봇 위젯 컴포넌트 구현 및 스크립트 연결
+  * **장소별 실시간 익명 채팅 API/웹소켓 백엔드 서버 기능 구현**
 * **작업 브랜치**: `feat/be-chatbot-seed`
 * **독점 작업 파일**:
   * `backend/scripts/seed.py`
-  * `backend/app/routers/chat.py`
+  * `backend/app/routers/chat.py` (전역 챗봇 및 장소별 익명 채팅 통합 관리)
   * `backend/app/models/location.py`
   * `frontend/src/stores/chat.js`
   * `frontend/src/App.vue` (챗봇 전역 플로팅 연동부만 수정)
