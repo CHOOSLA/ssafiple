@@ -24,6 +24,7 @@ Git Merge 시 코드 충돌을 예방하기 위해 **파일 및 컴포넌트 단
   * Kakao Maps JS SDK 연동 및 지도 화면 구현 (`/map`)
   * 지도 상의 카테고리별 핀 마커 렌더링, 오버레이 말풍선 매핑
   * 좌측 패널의 장소 목록 카드 렌더링 및 카테고리 필터링
+  * **[Phase 2] 경로 안내 모드 (마커 다중 선택, Polyline 연결 및 거리 합계 시각화)**
 * **작업 브랜치**: `feat/fe-map`
 * **독점 작업 파일**:
   * `frontend/src/pages/MapView.vue`
@@ -36,7 +37,8 @@ Git Merge 시 코드 충돌을 예방하기 위해 **파일 및 컴포넌트 단
 * **주요 역할**:
   * 자유게시판의 게시글 및 댓글 CRUD API 보완
   * 익명 작성 시 수정용 평문 비밀번호 검증 로직 매핑
-  * 게시글 목록, 상세조회(댓글 목록 포함), 작성/수정 폼 화면 개발
+  * 게시글 목록(검색 및 페이지네이션 포함), 상세조회(댓글 목록 포함), 작성/수정 폼 화면 개발
+  * **[Phase 2] 게시글 이미지 첨부 (Multipart/form-data 업로드 및 정적 파일 서빙)**
 * **작업 브랜치**: `feat/board-crud`
 * **독점 작업 파일**:
   * `frontend/src/pages/PostListView.vue`, `PostDetailView.vue`, `PostEditView.vue`
