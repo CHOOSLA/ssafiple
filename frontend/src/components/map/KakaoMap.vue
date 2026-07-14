@@ -90,7 +90,7 @@ const drawMarkers = (locations) => {
     content.style.cssText = `
       width: 28px; height: 28px;
       border-radius: 50% 50% 50% 0;
-      transform: rotate(45deg);
+      transform: rotate(-45deg);
       background: ${color};
       border: 2.5px solid #fff;
       box-shadow: 0 4px 9px rgba(0,0,0,.3);
@@ -104,7 +104,7 @@ const drawMarkers = (locations) => {
       width: 9px; height: 9px;
       border-radius: 50%;
       background: #fff;
-      transform: rotate(-45deg);
+      transform: rotate(45deg);
     `
     content.appendChild(innerDot)
 
