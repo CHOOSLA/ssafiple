@@ -9,7 +9,7 @@ from app.routers import posts, comments, locations, chat
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="LocalHub API",
+    title="SSAFIPLE API",
     description="서울 지역 관광지 정보 공유 및 AI 여행 비서 서비스 API",
     version="1.0.0"
 )
@@ -33,6 +33,6 @@ app.include_router(chat.router)
 def read_root():
     return {
         "status": "online",
-        "service": "LocalHub API",
+        "service": "SSAFIPLE API",
         "version": "1.0.0"
     }

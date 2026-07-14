@@ -3,7 +3,7 @@
     <!-- 글로벌 상단 헤더 네비게이션 -->
     <header class="app-header">
       <div class="header-inner">
-        <router-link to="/" class="logo">LocalHub Seoul</router-link>
+        <router-link to="/" class="logo">SSAFIPLE</router-link>
         <nav class="nav-links">
           <router-link to="/" active-class="active">홈</router-link>
           <router-link to="/map" active-class="active">지도</router-link>

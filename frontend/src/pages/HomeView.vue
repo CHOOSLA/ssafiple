@@ -1,7 +1,7 @@
 <template>
   <div class="home-container">
     <header class="hero-section">
-      <h1>LocalHub Seoul</h1>
+      <h1>SSAFIPLE Seoul</h1>
       <p>서울의 매력적인 관광지 정보를 찾고, 다른 여행자들과 이야기를 나누어보세요.</p>
     </header>
     <main class="menu-grid">
