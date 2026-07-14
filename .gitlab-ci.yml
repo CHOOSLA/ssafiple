@@ -3,11 +3,14 @@ stages:
 
 sync-to-github:
   stage: sync
-  image: alpine/git:latest
+  image: alpine:latest
+  tags:
+    - github
   rules:
     # master 브랜치에 푸시되었을 때만 트리거
     - if: '$CI_COMMIT_BRANCH == "master"'
   script:
+    - apk add --no-cache git
     - echo "GitHub 저장소로 자동 동기화(Mirroring)를 시작합니다..."
     
     # 1. 안전을 위해 git 설정
