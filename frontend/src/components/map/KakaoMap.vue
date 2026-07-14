@@ -133,7 +133,25 @@ const drawMarkers = (locations) => {
     // 마커 클릭 이벤트 바인딩 (카카오맵 정식 이벤트)
     window.kakao.maps.event.addListener(marker, 'click', () => {
       mapStore.selectLocation(loc)
-      mapInstance.value.panTo(position)
+      
+      // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 이동 알고리즘
+      const panel = document.querySelector('.left-panel')
+      const panelWidth = panel ? panel.offsetWidth : 550 // 기본값
+      
+      const proj = mapInstance.value.getProjection()
+      // 1. 마커의 지리 좌표를 화면 픽셀 좌표(Point)로 변환
+      let point = proj.pointFromCoords(position)
+      
+      // 2. 패널에 가려지지 않는 영역의 정중앙에 마커가 오려면, 
+      // 마커를 화면 중심보다 (패널너비 / 2) 만큼 오른쪽(시각적 중심)에 두어야 함.
+      // 따라서 지도의 중심 좌표는 마커 위치보다 (패널너비 / 2) 만큼 왼쪽(-x)으로 이동해야 합니다.
+      point.x = point.x - (panelWidth / 2)
+      
+      // 3. 계산된 픽셀 좌표를 다시 지리 좌표(LatLng)로 변환
+      const offsetLatLng = proj.coordsFromPoint(point)
+      
+      // 4. 오프셋이 적용된 새로운 중심으로 부드럽게 이동
+      mapInstance.value.panTo(offsetLatLng)
     })
 
     // 개별적으로 setMap() 하지 않고 배열에만 모음
