@@ -3,9 +3,9 @@
     <section class="app-shell">
       <header class="panel-header">
         <div class="brand-row">
-          <span class="brand-badge">L</span>
+          <span class="brand-badge">S</span>
           <div>
-            <div class="brand-title">LocalHub</div>
+            <div class="brand-title">SSAFIPLE</div>
             <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
           </div>
         </div>
