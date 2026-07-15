@@ -157,6 +157,15 @@ const renderMap = () => {
       const sw = bounds.getSouthWest()
       const ne = bounds.getNorthEast()
       const physicalCenter = mapInstance.value.getCenter()
+      const currentLevel = mapInstance.value.getLevel()
+      
+      // 줌 레벨이 7 이상(너무 넓음)이면 핀 로드 생략하고 안내문구 표시
+      if (currentLevel >= 7) {
+        mapStore.isZoomOutTooMuch = true
+        mapStore.locations = [] // 화면 핀 지우기
+        return
+      }
+      mapStore.isZoomOutTooMuch = false
       
       // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 계산
       const proj = mapInstance.value.getProjection()

@@ -13,6 +13,9 @@ export const useMapStore = defineStore('map', () => {
   const limit = ref(200)
   const hasMore = ref(true)
   
+  // 줌 레벨 너무 축소 시 안내용 상태
+  const isZoomOutTooMuch = ref(false)
+  
   // 현재 검색/필터 상태 캐시
   const currentQuery = ref({ category: null, q: null, bbox: null })
 
@@ -93,6 +96,7 @@ export const useMapStore = defineStore('map', () => {
     hasMore,
     selectedLocation,
     searchQuery,
+    isZoomOutTooMuch,
     fetchLocations,
     fetchMoreLocations,
     selectLocation,

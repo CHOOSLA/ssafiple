@@ -199,13 +199,7 @@ onMounted(() => {
 .brand-badge {
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
+  display: block;
 }
 
 .brand-title {
