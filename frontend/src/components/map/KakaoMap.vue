@@ -112,17 +112,17 @@ const renderMap = () => {
   })
 }
 
-// 줌 레벨(거리에 따라) 마커 이름 표시 여부 결정
 const updateNameLabels = () => {
   if (!mapInstance.value) return
   const currentLevel = mapInstance.value.getLevel()
   const showLabels = currentLevel <= 4 // 레벨 4 이하면 거리/동네 수준이므로 이름 표시
   
-  nameLabelOverlays.forEach(overlay => {
-    if (showLabels) {
-      overlay.setMap(mapInstance.value)
+  nameLabelOverlays.forEach(item => {
+    // 현재 선택된 장소(selectedLocation)이거나 마우스 호버 중일 경우 라벨 숨김 보장
+    if (showLabels && mapStore.selectedLocation?.id !== item.id) {
+      item.overlay.setMap(mapInstance.value)
     } else {
-      overlay.setMap(null)
+      item.overlay.setMap(null)
     }
   })
 }
@@ -144,7 +144,7 @@ const drawMarkers = (locations) => {
   markers = []
   
   // 기존 이름 라벨 모두 지도에서 제거 후 배열 초기화
-  nameLabelOverlays.forEach(overlay => overlay.setMap(null))
+  nameLabelOverlays.forEach(item => item.overlay.setMap(null))
   nameLabelOverlays = []
 
   locations.forEach(loc => {
@@ -203,10 +203,21 @@ const drawMarkers = (locations) => {
       router.push(`/locations/${loc.id}/posts`)
     })
 
+    // 지도 확대 시 보일 장소 이름 텍스트 라벨 생성
+    const nameLabel = new window.kakao.maps.CustomOverlay({
+      content: `<div class="marker-name-label">${loc.name}</div>`,
+      position: position,
+      yAnchor: 2.8, // 핀보다 위에 위치
+      zIndex: 900
+    });
+    nameLabelOverlays.push({ id: loc.id, overlay: nameLabel })
+
     // Hover (마우스 오버) 이벤트 바인딩: 커스텀 오버레이로 사진/설명 Pane 띄우기
     let hoverOverlay = null;
     window.kakao.maps.event.addListener(marker, 'mouseover', () => {
       if (hoverOverlay) hoverOverlay.setMap(null);
+      // 호버 시 지역명 라벨 숨김
+      nameLabel.setMap(null);
 
       // 이미지가 없으면 기본 회색 박스
       const imageUrl = loc.image_url || '';
@@ -225,7 +236,7 @@ const drawMarkers = (locations) => {
       hoverOverlay = new window.kakao.maps.CustomOverlay({
         content: content,
         position: position,
-        yAnchor: 1.5, // 핀 바로 위에 뜨도록 위치 조정
+        yAnchor: 1.15, // 핀 바로 위에 가깝게 뜨도록 위치 조정
         zIndex: 999
       });
       
@@ -236,17 +247,12 @@ const drawMarkers = (locations) => {
         if (hoverOverlay) {
           hoverOverlay.setMap(null);
         }
+        // 아웃 시 선택된 장소가 아니고, 줌 레벨이 4 이하면 라벨 복구
+        if (mapStore.selectedLocation?.id !== loc.id && mapInstance.value.getLevel() <= 4) {
+          nameLabel.setMap(mapInstance.value);
+        }
       });
     });
-
-    // 지도 확대 시 보일 장소 이름 텍스트 라벨 생성
-    const nameLabel = new window.kakao.maps.CustomOverlay({
-      content: `<div class="marker-name-label">${loc.name}</div>`,
-      position: position,
-      yAnchor: 2.8, // 핀보다 위에 위치
-      zIndex: 900
-    });
-    nameLabelOverlays.push(nameLabel)
 
     // 개별적으로 setMap() 하지 않고 배열에만 모음
     markers.push(marker)
@@ -305,10 +311,15 @@ watch(() => mapStore.selectedLocation, (loc) => {
     selectedOverlay = new window.kakao.maps.CustomOverlay({
       content: content,
       position: position,
-      yAnchor: 1.5,
+      yAnchor: 1.15, // 핀과 가깝게
       zIndex: 1000
     })
     selectedOverlay.setMap(mapInstance.value)
+    
+    // 선택된 마커의 텍스트 라벨 숨기기 및 이전 선택 라벨 복구 (updateNameLabels 재호출)
+    updateNameLabels()
+  } else {
+    updateNameLabels()
   }
 })
 </script>
