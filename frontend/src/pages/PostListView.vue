@@ -2,13 +2,13 @@
   <div class="page-shell">
     <section class="app-shell">
       <header class="panel-header">
-        <div class="brand-row">
+        <button type="button" class="brand-row brand-row-link" @click="goBack">
           <img class="brand-badge" src="/favicon.svg" alt="SSAFIPLE 로고" />
           <div>
             <div class="brand-title">SSAFIPLE</div>
             <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
           </div>
-        </div>
+        </button>
         <div class="search-bar">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
             <circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2" />
@@ -194,6 +194,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 9px;
+}
+
+.brand-row-link {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 .brand-badge {
