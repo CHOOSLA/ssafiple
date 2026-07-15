@@ -23,7 +23,6 @@ def chat_with_ai(chat_req: ChatRequest, db: Session = Depends(get_db)):
             db,
             chat_req.message,
             chat_req.history,
-            chat_req.preferences,
         )
     except openai.OpenAIError:
         traceback.print_exc()
