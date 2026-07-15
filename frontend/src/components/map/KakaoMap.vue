@@ -386,17 +386,9 @@ const drawMarkers = (locations) => {
       if (marker.isSpiderfied || overlappingMarkers.length <= 1) {
         resetSpiderfiedMarkers()
         
+        // mapStore에 선택을 알리면 알아서 watch 훅에서 부드러운 화면 이동 및 줌인을 수행합니다.
         mapStore.selectLocation(loc)
         
-        // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 이동 알고리즘
-        const panel = document.querySelector('.left-panel')
-        const panelWidth = panel ? panel.offsetWidth : 550
-        
-        let point = proj.pointFromCoords(marker.originalPosition)
-        point.x = point.x - (panelWidth / 2)
-        const offsetLatLng = proj.coordsFromPoint(point)
-        
-        mapInstance.value.panTo(offsetLatLng)
         router.push(`/locations/${loc.id}/posts`)
       } else {
         // 겹쳐진 핀이 여러 개라면 방사형(거미줄)으로 촤라락 펼치기
@@ -507,23 +499,35 @@ watch(() => mapStore.selectedLocation, (loc) => {
   if (loc && loc.latitude && loc.longitude && mapInstance.value) {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
-    // 사용자가 이미 충분히 확대해서 보고 있는 상태(레벨 1~4)라면 그 줌 레벨을 유지하고,
-    // 멀리서(레벨 5 이상) 보고 있었다면 핀의 주변이 보이도록 레벨 4로 부드럽게 줌 인 해줍니다.
-    const currentLevel = mapInstance.value.getLevel()
-    if (currentLevel > 4) {
-      mapInstance.value.setLevel(4, { animate: true })
-    }
-    
-    const panel = document.querySelector('.left-panel')
+    const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
     const panelWidth = panel ? panel.offsetWidth : 550
     
-    const proj = mapInstance.value.getProjection()
-    if (proj) {
-      let point = proj.pointFromCoords(position)
-      point.x = point.x - (panelWidth / 2)
-      mapInstance.value.panTo(proj.coordsFromPoint(point))
+    // 멀리서(레벨 5 이상) 보고 있었다면 핀이 있는 곳을 중심으로 먼저 줌 인 하고, 그 핀을 중앙으로 당겨옵니다.
+    const currentLevel = mapInstance.value.getLevel()
+    if (currentLevel > 4) {
+      mapInstance.value.setLevel(4, { animate: true, anchor: position })
+      
+      // 줌 애니메이션이 안정된 직후 시각적 중앙으로 당겨오기
+      setTimeout(() => {
+        const proj = mapInstance.value.getProjection()
+        if (proj) {
+          let point = proj.pointFromCoords(position)
+          point.x = point.x - (panelWidth / 2)
+          mapInstance.value.panTo(proj.coordsFromPoint(point))
+        } else {
+          mapInstance.value.panTo(position)
+        }
+      }, 250)
     } else {
-      mapInstance.value.panTo(position)
+      // 이미 충분히 가깝다면 바로 시각적 중앙으로 당겨오기
+      const proj = mapInstance.value.getProjection()
+      if (proj) {
+        let point = proj.pointFromCoords(position)
+        point.x = point.x - (panelWidth / 2)
+        mapInstance.value.panTo(proj.coordsFromPoint(point))
+      } else {
+        mapInstance.value.panTo(position)
+      }
     }
     
     // 오버레이 생성 및 표시
