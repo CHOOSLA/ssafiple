@@ -18,7 +18,7 @@ def create_comment(post_id: int, comment_in: CommentCreate, db: Session = Depend
         content=comment_in.content,
         author=comment_in.author,
         password=comment_in.password  # 평문 비밀번호 저장
-    )
+    ) 
     db.add(db_comment)
     db.commit()
     db.refresh(db_comment)

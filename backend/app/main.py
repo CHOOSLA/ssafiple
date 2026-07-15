@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from app.core.config import settings
 from app.database import engine, Base
 from app.models import Location, Post, Comment
@@ -28,6 +30,10 @@ app.include_router(posts.router)
 app.include_router(comments.router)
 app.include_router(locations.router)
 app.include_router(chat.router)
+
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 @app.get("/")
 def read_root():

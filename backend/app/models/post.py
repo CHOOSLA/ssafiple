@@ -22,3 +22,4 @@ class Post(Base):
         primaryjoin="and_(Post.id==Comment.post_id, Comment.is_deleted==False)",
         back_populates="post"
     )
+ 

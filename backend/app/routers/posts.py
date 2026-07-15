@@ -1,11 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import shutil
+import uuid
+from pathlib import Path
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models import Post
 from app.schemas import PostCreate, PostUpdate, PostOut
 
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 router = APIRouter(prefix="/posts", tags=["posts"])
+
+@router.post("/upload-image", status_code=status.HTTP_200_OK)
+def upload_image(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="파일명이 비어 있습니다.")
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in {".jpg", ".jpeg", ".png", ".gif", ".webp"}:
+        raise HTTPException(status_code=400, detail="지원되지 않는 이미지 형식입니다.")
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    save_path = UPLOAD_DIR / filename
+    with save_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {"image_url": f"/uploads/{filename}"}
 
 @router.post("/", response_model=PostOut, status_code=status.HTTP_201_CREATED)
 def create_post(post_in: PostCreate, db: Session = Depends(get_db)):
