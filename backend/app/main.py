@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.database import engine, Base
 from app.models import Location, Post, Comment, ChatMessage
-from app.routers import posts, comments, locations, chat
+from app.routers import posts, comments, locations, chat, directions
 import sys, os
 
 # backend/ 경로를 sys.path에 추가하여 scripts 패키지를 가져올 수 있도록 설정
@@ -45,6 +45,7 @@ app.include_router(posts.router, prefix="/api")
 app.include_router(comments.router, prefix="/api")
 app.include_router(locations.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(directions.router, prefix="/api")
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
