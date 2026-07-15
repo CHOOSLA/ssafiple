@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 import PlaceChatPanel from '@/components/chat/PlaceChatPanel.vue'
@@ -171,6 +171,21 @@ onMounted(() => {
   fetchLocation()
   fetchPosts()
 })
+
+// 같은 라우트에서 location_id 파라미터만 바뀌면(지도에서 다른 핀 클릭 등)
+// 컴포넌트가 재사용되어 onMounted가 다시 실행되지 않으므로, 파라미터를 감지해 데이터를 다시 불러온다
+watch(
+  () => route.params.location_id,
+  (newId, oldId) => {
+    if (!newId || newId === oldId) return
+    location.value = null
+    posts.value = []
+    searchQuery.value = ''
+    activeTab.value = 'posts'
+    fetchLocation()
+    fetchPosts()
+  }
+)
 </script>
 
 <style scoped>
