@@ -11,6 +11,8 @@ class ChatRequest(BaseModel):
     # 빈 메시지는 422로 거절 (명세 FR-CHT-01 예외 처리)
     message: str = Field(min_length=1, max_length=500)
     history: List[ChatMessage] = []
+    # 매 요청마다 사용자가 그때그때 입력하는 취향 힌트 (서버에 영속 저장하지 않음)
+    preferences: str = Field(default="", max_length=200)
 
 class LocationBrief(BaseModel):
     """챗봇이 답변과 함께 추천하는 장소의 지도 연동용 요약 정보."""
