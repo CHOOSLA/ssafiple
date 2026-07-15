@@ -8,6 +8,12 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = Field(default="")
     CORS_ORIGINS: str = Field(default="http://localhost:5173,http://127.0.0.1:5173")
 
+    # 챗봇(CHT) 설정
+    OPENAI_MODEL: str = Field(default="gpt-5-mini")
+    OPENAI_TIMEOUT: float = Field(default=60.0)
+    # 요청 시 함께 전송할 최근 대화 턴 수 상한 (명세 §7 비용 제약)
+    CHAT_HISTORY_TURNS: int = Field(default=6)
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
