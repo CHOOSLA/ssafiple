@@ -1,5 +1,5 @@
 <template>
-  <div class="write-shell panel-card">
+  <div class="write-shell">
     <header class="write-header">
       <button type="button" class="text-btn" @click="handleCancel">취소</button>
       <span class="write-title">{{ isEdit ? '게시글 수정' : '글쓰기' }}</span>
@@ -172,6 +172,7 @@ onMounted(fetchPost)
   min-height: 0;
   padding: 0;
   overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 239, 0.96));
 }
 
 .write-header {

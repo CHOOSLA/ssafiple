@@ -1,56 +1,57 @@
 <template>
-  <div class="page-shell">
-    <header class="detail-header panel-card">
+  <div class="detail-shell">
+    <header class="detail-header">
       <router-link to="/posts" class="back-link">← 목록으로</router-link>
       <div class="action-buttons">
-        <router-link :to="`/posts/${postId}/edit`" class="btn btn-secondary">수정</router-link>
-        <button class="btn btn-danger" @click="openDeleteModal">삭제</button>
+        <router-link :to="`/posts/${postId}/edit`" class="chip-btn secondary">수정</router-link>
+        <button type="button" class="chip-btn danger" @click="openDeleteModal">삭제</button>
       </div>
     </header>
 
-    <article v-if="post" class="panel-card post-card">
-      <div class="hero-media" :class="{ 'has-image': post.image_url }">
-        <img v-if="post.image_url" :src="post.image_url" alt="첨부 이미지" />
-        <div v-else class="hero-placeholder">PHOTO · {{ post.author }}</div>
-      </div>
-      <div class="post-body">
-        <div class="post-head">
+    <div class="detail-body">
+      <div v-if="!post" class="status-message">게시글을 불러오는 중...</div>
+
+      <template v-else>
+        <img v-if="post.image_url" :src="post.image_url" class="post-image" alt="첨부 이미지" />
+
+        <div class="post-content">
           <span class="pill">게시글</span>
-          <h1>{{ post.title }}</h1>
+          <h1 class="post-title">{{ post.title }}</h1>
           <div class="meta-info">
             <span>작성자 {{ post.author }}</span>
             <span>{{ formatDate(post.created_at) }}</span>
           </div>
+          <p class="body-text">{{ post.content }}</p>
         </div>
-        <div class="body-text">
-          <p>{{ post.content }}</p>
-        </div>
-      </div>
-    </article>
 
-    <div v-else class="panel-card status-card">게시글을 불러오는 중...</div>
+        <div class="section-divider"></div>
 
-    <section class="panel-card comment-card">
-      <h3>댓글</h3>
-      <form class="comment-form" @submit.prevent="submitComment">
-        <input v-model="commentAuthor" class="form-control" placeholder="작성자" required />
-        <input v-model="commentPassword" class="form-control" type="password" placeholder="비밀번호" required />
-        <textarea v-model="commentContent" class="form-control" rows="3" placeholder="댓글을 입력하세요" required></textarea>
-        <button type="submit" class="btn btn-primary">댓글 작성</button>
-      </form>
+        <div class="comment-section-title">댓글 <span>{{ post.comments?.length || 0 }}</span></div>
 
-      <div class="comment-list">
-        <div v-for="comment in post?.comments || []" :key="comment.id" class="comment-item">
-          <div class="comment-meta">
-            <strong>{{ comment.author }}</strong>
-            <span>{{ formatDate(comment.created_at) }}</span>
+        <div class="comment-list">
+          <div v-for="comment in post.comments || []" :key="comment.id" class="comment-item">
+            <div class="comment-meta">
+              <strong>{{ comment.author }}</strong>
+              <span>{{ formatDate(comment.created_at) }}</span>
+              <button type="button" class="comment-delete" @click="deleteComment(comment.id)">삭제</button>
+            </div>
+            <p class="comment-content">{{ comment.content }}</p>
           </div>
-          <p>{{ comment.content }}</p>
-          <button class="btn btn-secondary" @click="deleteComment(comment.id)">삭제</button>
+          <p v-if="!(post.comments || []).length" class="empty-comments">첫 댓글을 남겨보세요.</p>
         </div>
-        <p v-if="!(post?.comments || []).length" class="empty-comments">댓글이 없습니다.</p>
+      </template>
+    </div>
+
+    <form class="comment-form" @submit.prevent="submitComment">
+      <div class="comment-form-row">
+        <input v-model="commentAuthor" class="comment-input small" placeholder="작성자" required />
+        <input v-model="commentPassword" class="comment-input small" type="password" placeholder="비밀번호" required />
       </div>
-    </section>
+      <div class="comment-form-row">
+        <input v-model="commentContent" class="comment-input" placeholder="익명으로 댓글 남기기" required />
+        <button type="submit" class="send-btn">등록</button>
+      </div>
+    </form>
   </div>
 </template>
 
@@ -58,11 +59,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
-import { useModalStore } from '../stores/modal'
 
 const route = useRoute()
 const router = useRouter()
-const modalStore = useModalStore()
 
 const postId = computed(() => route.params.id)
 const post = ref(null)
@@ -126,18 +125,28 @@ onMounted(fetchPost)
 </script>
 
 <style scoped>
+.detail-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 239, 0.96));
+}
+
 .detail-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.2rem;
-  margin-bottom: 1rem;
-  border-left: 5px solid var(--accent);
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex: none;
 }
 
 .back-link {
   color: var(--accent);
   font-weight: 700;
+  font-size: 13.5px;
 }
 
 .action-buttons {
@@ -145,50 +154,46 @@ onMounted(fetchPost)
   gap: 0.5rem;
 }
 
-.post-card,
-.comment-card,
-.status-card {
-  padding: 1.25rem;
-  margin-bottom: 1rem;
+.chip-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 13px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
 }
 
-.post-card {
-  border-left: 4px solid var(--accent);
-  padding: 0;
-  overflow: hidden;
+.chip-btn.secondary {
+  background: #f2f1ed;
+  color: var(--text-secondary);
 }
 
-.hero-media {
-  position: relative;
-  height: 158px;
-  background: repeating-linear-gradient(45deg, #e6e4dd, #e6e4dd 11px, #f0efea 11px, #f0efea 22px);
+.chip-btn.danger {
+  background: #ef6a5f;
+  color: #fff;
 }
 
-.hero-media img {
+.detail-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.status-message {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.post-image {
+  display: block;
   width: 100%;
-  height: 100%;
+  max-height: 260px;
   object-fit: cover;
 }
 
-.hero-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  color: #aaa69d;
-  letter-spacing: 0.04em;
-}
-
-.post-body {
-  padding: 16px 18px 18px;
-}
-
-.post-head h1 {
-  margin: 0.45rem 0 0.55rem;
-  font-size: 1.7rem;
+.post-content {
+  padding: 18px 18px 6px;
 }
 
 .pill {
@@ -202,55 +207,137 @@ onMounted(fetchPost)
   font-weight: 700;
 }
 
+.post-title {
+  margin: 10px 0 0;
+  font-size: 1.4rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
 .meta-info {
   display: flex;
-  gap: 1rem;
-  color: var(--text-secondary);
-  font-size: 0.92rem;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid var(--border-color);
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 10px;
 }
 
 .body-text {
-  line-height: 1.7;
-  color: var(--text-primary);
-  margin: 1rem 0 0;
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: #333;
+  margin: 16px 0 0;
   white-space: pre-wrap;
+}
+
+.section-divider {
+  height: 8px;
+  background: #f6f5f2;
+  margin-top: 14px;
+}
+
+.comment-section-title {
+  padding: 15px 18px 6px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.comment-section-title span {
+  color: var(--accent);
+}
+
+.comment-item {
+  padding: 12px 18px;
+  border-bottom: 1px solid #f4f2ee;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.comment-meta strong {
+  font-weight: 700;
+}
+
+.comment-meta span {
+  color: #c2bfb7;
+  font-size: 11.5px;
+}
+
+.comment-delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.comment-content {
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 5px 0 0;
+  color: #2a2825;
+}
+
+.empty-comments {
+  padding: 26px 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
 }
 
 .comment-form {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
-  margin-bottom: 1rem;
-}
-
-.comment-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  padding: 0.9rem 0;
+  gap: 8px;
+  padding: 12px;
   border-top: 1px solid var(--border-color);
+  background: #fff;
+  flex: none;
 }
 
-.comment-meta {
+.comment-form-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  color: var(--text-secondary);
+  gap: 8px;
 }
 
-.empty-comments {
-  color: var(--text-secondary);
-  padding: 0.8rem 0 0;
+.comment-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e3e0d9;
+  border-radius: 11px;
+  padding: 11px 13px;
+  font-size: 13.5px;
+  outline: none;
 }
 
-@media (max-width: 720px) {
-  .detail-header,
-  .comment-item {
-    flex-direction: column;
-    align-items: flex-start;
+.comment-input.small {
+  flex: none;
+  width: 130px;
+}
+
+.send-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  padding: 0 17px;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  flex: none;
+}
+
+@media (max-width: 480px) {
+  .comment-input.small {
+    width: auto;
   }
 }
 </style>

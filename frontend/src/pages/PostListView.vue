@@ -1,6 +1,6 @@
 <template>
   <div class="page-shell">
-    <section class="panel-card app-shell">
+    <section class="app-shell">
       <header class="panel-header">
         <div class="brand-row">
           <span class="brand-badge">L</span>
@@ -18,34 +18,64 @@
         </div>
       </header>
 
-      <div class="panel-body">
-        <div class="section-label">
-          게시글 <span>{{ filteredPosts.length }}</span>개 · 최신 순
+      <div class="place-hero">
+        <button type="button" class="hero-back" @click="goBack">‹</button>
+        <span class="hero-placeholder">PHOTO · {{ placeName }}</span>
+      </div>
+
+      <div class="place-info-bar">
+        <div class="place-name-row">
+          <span class="place-name">{{ placeName }}</span>
+          <span class="place-cat">{{ placeCategory }}</span>
+        </div>
+        <div class="place-address">{{ placeAddress }}</div>
+      </div>
+
+      <div class="place-tabs">
+        <button
+          type="button"
+          class="tab-btn"
+          :class="{ active: activeTab === 'posts' }"
+          @click="activeTab = 'posts'"
+        >게시글 {{ filteredPosts.length }}</button>
+        <button
+          type="button"
+          class="tab-btn"
+          :class="{ active: activeTab === 'chat' }"
+          @click="activeTab = 'chat'"
+        >실시간 채팅</button>
+      </div>
+
+      <template v-if="activeTab === 'posts'">
+        <div class="list-toolbar">
+          <router-link to="/posts/new" class="write-btn"><span class="write-icon">+</span>글쓰기</router-link>
         </div>
 
-        <div class="action-row">
-          <router-link to="/posts/new" class="btn btn-primary">글쓰기</router-link>
-        </div>
-
-        <div v-if="loading" class="status-message">불러오는 중...</div>
-        <div v-else-if="error" class="status-message error">{{ error }}</div>
-        <div v-else class="post-list">
-          <article v-for="post in filteredPosts" :key="post.id" class="post-item">
-            <div class="thumb-card">
-              <span class="thumb-pill">{{ post.image_url ? 'PHOTO' : 'POST' }}</span>
-              <span class="thumb-label">{{ post.image_url ? 'IMAGE' : 'TEXT' }}</span>
-            </div>
-            <div class="post-main">
-              <router-link :to="`/posts/${post.id}`" class="post-title">{{ post.title }}</router-link>
+        <div class="panel-body">
+          <div v-if="loading" class="status-message">불러오는 중...</div>
+          <div v-else-if="error" class="status-message error">{{ error }}</div>
+          <div v-else class="post-list">
+            <router-link v-for="post in filteredPosts" :key="post.id" :to="`/posts/${post.id}`" class="post-item">
+              <span class="post-title">{{ post.title }}</span>
               <p class="post-preview">{{ post.content }}</p>
               <div class="post-meta">
                 <span>{{ post.author }}</span>
                 <span>{{ formatDate(post.created_at) }}</span>
                 <span>댓글 {{ post.comments?.length || 0 }}</span>
               </div>
+            </router-link>
+            <div v-if="filteredPosts.length === 0" class="empty-row">
+              <div class="empty-title">아직 등록된 게시글이 없어요.</div>
+              <div class="empty-sub">첫 게시글을 남겨보세요.</div>
             </div>
-          </article>
-          <div v-if="filteredPosts.length === 0" class="empty-row">등록된 게시글이 없습니다.</div>
+          </div>
+        </div>
+      </template>
+
+      <div v-else class="panel-body chat-placeholder">
+        <div class="empty-row">
+          <div class="empty-title">실시간 채팅은 준비 중입니다.</div>
+          <div class="empty-sub">곧 만나보실 수 있어요.</div>
         </div>
       </div>
     </section>
@@ -54,12 +84,25 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api'
+
+const router = useRouter()
 
 const posts = ref([])
 const loading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
+const activeTab = ref('posts')
+
+// 특정 장소에 종속된 게시판 UI가 아직 없어 시안(post-items.png)의 목업 장소 정보로 채움
+const placeName = '경복궁'
+const placeCategory = '관광지'
+const placeAddress = '서울 종로구 사직로 161'
+
+const goBack = () => {
+  router.push('/')
+}
 
 const filteredPosts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -100,6 +143,7 @@ onMounted(fetchPosts)
   min-height: 0;
   padding: 0;
   overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 239, 0.96));
 }
 
 .panel-header {
@@ -157,117 +201,184 @@ onMounted(fetchPosts)
   color: var(--text-primary);
 }
 
+.place-hero {
+  position: relative;
+  height: 152px;
+  flex: none;
+  background: repeating-linear-gradient(45deg, #e6e4dd, #e6e4dd 11px, #f0efea 11px, #f0efea 22px);
+}
+
+.hero-back {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-primary);
+  padding: 0;
+}
+
+.hero-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  color: #aaa69d;
+  letter-spacing: 0.04em;
+}
+
+.place-info-bar {
+  padding: 15px 16px 13px;
+  flex: none;
+  border-bottom: 1px solid #f0eee9;
+}
+
+.place-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.place-name {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.place-cat {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cat-tour);
+  background: #f6f5f2;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.place-address {
+  margin-top: 9px;
+  color: #6b6864;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.place-tabs {
+  display: flex;
+  border-bottom: 1px solid #eceae6;
+  flex: none;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 2.5px solid transparent;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 11px 16px 8px;
+  flex: none;
+}
+
+.write-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(241, 91, 76, 0.32);
+}
+
+.write-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
 .panel-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px 16px 10px;
-}
-
-.section-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-}
-
-.section-label span {
-  color: var(--text-primary);
-  font-weight: 700;
-}
-
-.action-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
 }
 
 .post-list {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
 }
 
 .post-item {
-  display: flex;
-  gap: 14px;
+  display: block;
   width: 100%;
-  padding: 16px;
-  border: 1px solid rgba(240, 238, 233, 0.95);
-  border-radius: 18px;
-  background: linear-gradient(135deg, #fffdfa 0%, #fcf7f0 100%);
-  box-shadow: 0 10px 24px rgba(28, 27, 26, 0.04);
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f4f2ee;
+  padding: 15px 16px;
+  cursor: pointer;
+  color: inherit;
+  transition: background-color 0.2s ease;
 }
 
-.thumb-card {
-  width: 116px;
-  min-width: 116px;
-  height: 116px;
-  border-radius: 13px;
-  background: repeating-linear-gradient(45deg, #e9e7e0, #e9e7e0 9px, #f2f1ec 9px, #f2f1ec 18px);
-  border: 1px solid #ece9e2;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.thumb-pill {
-  position: absolute;
-  top: 9px;
-  left: 9px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--accent);
-  padding: 3px 9px;
-  border-radius: 16px;
-}
-
-.thumb-label {
-  margin-bottom: 10px;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  color: #aaa69d;
-  letter-spacing: 0.04em;
-}
-
-.post-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+.post-item:hover {
+  background: #faf9f6;
 }
 
 .post-title {
   display: block;
-  font-size: 1.02rem;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 14.5px;
+  line-height: 1.4;
   color: var(--text-primary);
-  margin-bottom: 0.35rem;
 }
 
 .post-preview {
-  margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: block;
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: #6b6864;
+  line-height: 1.55;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .post-meta {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  color: var(--text-secondary);
-  font-size: 0.92rem;
-  margin-top: auto;
-  padding-top: 10px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 9px;
 }
 
-.status-message,
-.empty-row {
+.status-message {
   padding: 2rem 1rem;
   text-align: center;
   color: var(--text-secondary);
@@ -277,14 +388,19 @@ onMounted(fetchPosts)
   color: #d24b3d;
 }
 
-@media (max-width: 720px) {
-  .post-item {
-    flex-direction: column;
-  }
+.empty-row {
+  padding: 52px 20px;
+  text-align: center;
+}
 
-  .thumb-card {
-    width: 100%;
-    min-width: 0;
-  }
+.empty-title {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.empty-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
 }
 </style>
