@@ -3,13 +3,13 @@
     
     <!-- 로고 및 검색 헤더 영역 (LocalHub 디자인 참조) -->
     <div class="header-section">
-      <div class="brand-row">
-        <span class="brand-logo">S</span>
+      <button type="button" class="brand-row brand-row-link" @click="goHome">
+        <img class="brand-logo" src="/favicon.svg" alt="SSAFIPLE 로고" />
         <div class="brand-text">
           <div class="brand-title">SSAFIPLE</div>
           <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
         </div>
-      </div>
+      </button>
       <div class="search-row">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2"/><line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round"/></svg>
         <input
@@ -18,6 +18,15 @@
           v-model="mapStore.searchQuery"
           @keyup.enter="handleSearch"
         />
+        <button
+          v-if="mapStore.searchQuery"
+          type="button"
+          class="search-clear-btn"
+          aria-label="검색어 지우기"
+          @click="clearSearch"
+        >
+          ×
+        </button>
       </div>
     </div>
 
@@ -27,7 +36,10 @@
       
       <div class="list-body">
         <div v-if="mapStore.isLoading" class="loading">데이터를 불러오는 중입니다...</div>
-        <div v-else-if="mapStore.locations.length === 0" class="empty">검색 결과가 없습니다.</div>
+        <!-- 줌 아웃 시(결과 0개)에도 깔끔하게 표시되도록 메시지 통일 -->
+        <div v-else-if="mapStore.locations.length === 0" class="empty">
+          {{ mapStore.isZoomOutTooMuch ? '지도를 더 확대해주세요.' : '검색 결과가 없습니다.' }}
+        </div>
         
         <button 
           v-else 
@@ -128,9 +140,18 @@ const handleSearch = () => {
   mapStore.fetchLocations(null, mapStore.searchQuery)
 }
 
+const clearSearch = () => {
+  mapStore.setSearchQuery('')
+  handleSearch()
+}
+
 const goToPosts = (loc) => {
   mapStore.selectLocation(loc)
   router.push(`/locations/${loc.id}/posts`)
+}
+
+const goHome = () => {
+  router.push('/')
 }
 
 const observerTarget = ref(null)
@@ -182,17 +203,18 @@ onUnmounted(() => {
   gap: 9px;
 }
 
+.brand-row-link {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
 .brand-logo {
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: var(--accent, #f15b4c);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 900;
-  font-size: 16px;
+  display: block;
 }
 
 .brand-title {
@@ -226,6 +248,27 @@ onUnmounted(() => {
   font-size: 14px;
   color: #1c1b1a;
   min-width: 0;
+}
+
+.search-clear-btn {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #d8d5cd;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.search-clear-btn:hover {
+  background: #b0ada5;
 }
 
 /* 리스트 컨테이너 */

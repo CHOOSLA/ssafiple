@@ -2,19 +2,28 @@
   <div class="page-shell">
     <section class="app-shell">
       <header class="panel-header">
-        <div class="brand-row">
-          <span class="brand-badge">S</span>
+        <button type="button" class="brand-row brand-row-link" @click="goBack">
+          <img class="brand-badge" src="/favicon.svg" alt="SSAFIPLE 로고" />
           <div>
             <div class="brand-title">SSAFIPLE</div>
             <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
           </div>
-        </div>
+        </button>
         <div class="search-bar">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
             <circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2" />
             <line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round" />
           </svg>
           <input v-model="searchQuery" placeholder="게시글 제목/내용 검색" />
+          <button
+            v-if="searchQuery"
+            type="button"
+            class="search-clear-btn"
+            aria-label="검색어 지우기"
+            @click="searchQuery = ''"
+          >
+            ×
+          </button>
         </div>
       </header>
 
@@ -109,7 +118,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 import PlaceChatPanel from '@/components/chat/PlaceChatPanel.vue'
@@ -238,6 +247,22 @@ onMounted(() => {
 onUnmounted(() => {
   mapStore.clearRoute()
 })
+
+// 같은 라우트에서 location_id 파라미터만 바뀌면(지도에서 다른 핀 클릭 등)
+// 컴포넌트가 재사용되어 onMounted가 다시 실행되지 않으므로, 파라미터를 감지해 데이터를 다시 불러온다
+watch(
+  () => route.params.location_id,
+  (newId, oldId) => {
+    if (!newId || newId === oldId) return
+    location.value = null
+    posts.value = []
+    searchQuery.value = ''
+    activeTab.value = 'posts'
+    mapStore.clearRoute()
+    fetchLocation()
+    fetchPosts()
+  }
+)
 </script>
 
 <style scoped>
@@ -263,16 +288,18 @@ onUnmounted(() => {
   gap: 9px;
 }
 
+.brand-row-link {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
 .brand-badge {
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
+  display: block;
 }
 
 .brand-title {
@@ -304,6 +331,27 @@ onUnmounted(() => {
   min-width: 0;
   font-size: 14px;
   color: var(--text-primary);
+}
+
+.search-clear-btn {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #d8d5cd;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.search-clear-btn:hover {
+  background: #b0ada5;
 }
 
 .place-hero {
