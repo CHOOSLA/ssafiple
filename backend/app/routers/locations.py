@@ -16,7 +16,7 @@ def list_locations(
     ne_lat: Optional[float] = None,
     ne_lng: Optional[float] = None,
     skip: int = 0,
-    limit: int = 50, 
+    limit: int = 500, 
     db: Session = Depends(get_db)
 ):
     query = db.query(Location)
