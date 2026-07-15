@@ -185,7 +185,7 @@ const drawMarkers = (locations) => {
         <div class="hover-pane">
           ${imageTag}
           <div class="hover-info">
-            <div class="hover-title">${loc.title}</div>
+            <div class="hover-title">${loc.name}</div>
             <div class="hover-category" style="color: ${color}">${loc.category}</div>
           </div>
         </div>
