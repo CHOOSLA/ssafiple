@@ -176,7 +176,7 @@ const renderMap = () => {
     averageCenter: true, // 클러스터에 포함된 마커들의 평균 위치를 클러스터 마커 위치로 설정
     minLevel: 3,         // 더 확대해야 풀리도록(3레벨부터 클러스터링) 설정
     gridSize: 80,        // 기본값 60보다 반경을 넓혀서 더 많은 핀을 한 덩어리로 잘 묶게 만듦
-    disableClickZoom: false, // 클러스터 마커 클릭 시 줌 인
+    disableClickZoom: true, // 기본 줌인 기능을 끄고 수동으로 시각적 중앙을 맞춰 줌인할 예정
     styles: [{
       width: '40px', height: '40px',
       background: 'rgba(241, 91, 76, 0.9)', /* var(--accent) 색상 */
@@ -194,6 +194,27 @@ const renderMap = () => {
   // 클러스터링이 완료될 때마다 라벨을 갱신 (클러스터 밖으로 튕겨나온 낱개 핀만 라벨 표시)
   window.kakao.maps.event.addListener(clustererInstance.value, 'clustered', () => {
     updateNameLabels()
+  })
+  
+  // 클러스터 클릭 시 시각적 중앙(왼쪽 패널 고려)으로 줌 인 하는 커스텀 로직
+  window.kakao.maps.event.addListener(clustererInstance.value, 'clusterclick', (cluster) => {
+    // 현재 레벨에서 1단계 줌 인
+    const level = mapInstance.value.getLevel() - 1
+    mapInstance.value.setLevel(level)
+    
+    // 클러스터의 중심좌표로 이동하되 왼쪽 패널 너비만큼 보정
+    const center = cluster.getCenter()
+    const proj = mapInstance.value.getProjection()
+    const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
+    const panelWidth = panel ? panel.offsetWidth : 550
+    
+    if (proj) {
+      let point = proj.pointFromCoords(center)
+      point.x = point.x - (panelWidth / 2)
+      mapInstance.value.panTo(proj.coordsFromPoint(point))
+    } else {
+      mapInstance.value.panTo(center)
+    }
   })
   
   // 줌 컨트롤 추가 (우측 상단으로 이동 - AI 챗봇 버튼과 겹침 방지)
