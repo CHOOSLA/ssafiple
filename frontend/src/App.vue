@@ -19,7 +19,7 @@
 
     <!-- 우측 하단 플로팅 챗봇 영역 -->
     <div class="chatbot-container">
-      <!-- 추후 Chatbot 컴포넌트 추가 예정 -->
+      <ChatWidget />
     </div>
 
   </div>
@@ -28,6 +28,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import KakaoMap from '@/components/map/KakaoMap.vue'
+import ChatWidget from '@/components/ChatWidget.vue'
 
 // 기본 패널 너비를 내용물이 넉넉하게 보이도록 550px로 지정
 const DEFAULT_WIDTH = 550
