@@ -15,6 +15,15 @@
             <line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round" />
           </svg>
           <input v-model="searchQuery" placeholder="게시글 제목/내용 검색" />
+          <button
+            v-if="searchQuery"
+            type="button"
+            class="search-clear-btn"
+            aria-label="검색어 지우기"
+            @click="searchQuery = ''"
+          >
+            ×
+          </button>
         </div>
       </header>
 
@@ -239,6 +248,27 @@ onMounted(() => {
   min-width: 0;
   font-size: 14px;
   color: var(--text-primary);
+}
+
+.search-clear-btn {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #d8d5cd;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.search-clear-btn:hover {
+  background: #b0ada5;
 }
 
 .place-hero {
