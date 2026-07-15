@@ -72,12 +72,7 @@
         </div>
       </template>
 
-      <div v-else class="panel-body chat-placeholder">
-        <div class="empty-row">
-          <div class="empty-title">실시간 채팅은 준비 중입니다.</div>
-          <div class="empty-sub">곧 만나보실 수 있어요.</div>
-        </div>
-      </div>
+      <PlaceChatPanel v-else :location-id="route.params.location_id" />
     </section>
   </div>
 </template>
@@ -86,6 +81,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
+import PlaceChatPanel from '@/components/chat/PlaceChatPanel.vue'
 import api from '../api'
 
 const router = useRouter()
