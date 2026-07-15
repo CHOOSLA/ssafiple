@@ -174,7 +174,7 @@ const drawMarkers = (locations) => {
       mapInstance.value.panTo(offsetLatLng)
       
       // 장소 선택 후 게시판 화면으로 이동
-      router.push({ path: '/posts', query: { location_id: loc.id } })
+      router.push(`/locations/${loc.id}/posts`)
     })
 
     // Hover (마우스 오버) 이벤트 바인딩: 커스텀 오버레이로 사진/설명 Pane 띄우기

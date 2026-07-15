@@ -48,14 +48,14 @@
 
       <template v-if="activeTab === 'posts'">
         <div class="list-toolbar">
-          <router-link to="/posts/new" class="write-btn"><span class="write-icon">+</span>글쓰기</router-link>
+          <router-link :to="`/locations/${$route.params.location_id}/posts/new`" class="write-btn"><span class="write-icon">+</span>글쓰기</router-link>
         </div>
 
         <div class="panel-body">
           <div v-if="loading" class="status-message">불러오는 중...</div>
           <div v-else-if="error" class="status-message error">{{ error }}</div>
           <div v-else class="post-list">
-            <router-link v-for="post in filteredPosts" :key="post.id" :to="`/posts/${post.id}`" class="post-item">
+            <router-link v-for="post in filteredPosts" :key="post.id" :to="`/locations/${$route.params.location_id}/posts/${post.id}`" class="post-item">
               <span class="post-title">{{ post.title }}</span>
               <p class="post-preview">{{ post.content }}</p>
               <div class="post-meta">
@@ -84,11 +84,12 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 import api from '../api'
 
 const router = useRouter()
+const route = useRoute()
 const mapStore = useMapStore()
 
 const posts = ref([])
@@ -125,8 +126,8 @@ const fetchPosts = async () => {
   loading.value = true
   error.value = ''
   try {
-    // 맵에서 선택한 장소의 id (없으면 전체 조회)
-    const locId = mapStore.selectedLocation?.id || router.currentRoute.value.query.location_id
+    // URL 동적 라우팅 패러미터에서 location_id 가져오기
+    const locId = route.params.location_id
     const params = locId ? { location_id: locId } : {}
     
     const { data } = await api.get('/posts/', { params })

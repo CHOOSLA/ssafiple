@@ -12,22 +12,22 @@ const routes = [
     component: MapView
   },
   {
-    path: '/posts',
+    path: '/locations/:location_id/posts',
     name: 'PostList',
     component: PostListView
   },
   {
-    path: '/posts/new',
+    path: '/locations/:location_id/posts/new',
     name: 'PostCreate',
     component: PostEditView
   },
   {
-    path: '/posts/:id',
+    path: '/locations/:location_id/posts/:id',
     name: 'PostDetail',
     component: PostDetailView
   },
   {
-    path: '/posts/:id/edit',
+    path: '/locations/:location_id/posts/:id/edit',
     name: 'PostEdit',
     component: PostEditView
   },

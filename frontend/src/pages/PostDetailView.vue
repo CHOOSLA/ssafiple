@@ -1,9 +1,9 @@
 <template>
   <div class="detail-shell">
     <header class="detail-header">
-      <router-link to="/posts" class="back-link">← 목록으로</router-link>
+      <router-link :to="`/locations/${$route.params.location_id}/posts`" class="back-link">← 목록으로</router-link>
       <div class="action-buttons">
-        <router-link :to="`/posts/${postId}/edit`" class="chip-btn secondary">수정</router-link>
+        <router-link :to="`/locations/${$route.params.location_id}/posts/${postId}/edit`" class="chip-btn secondary">수정</router-link>
         <button type="button" class="chip-btn danger" @click="openDeleteModal">삭제</button>
       </div>
     </header>
@@ -123,7 +123,7 @@ const openDeleteModal = async () => {
   if (!password) return
   try {
     await api.delete(`/posts/${postId.value}?password_in=${encodeURIComponent(password)}`)
-    router.push('/posts')
+    router.push(`/locations/${route.params.location_id}/posts`)
   } catch (err) {
     alert('게시글 삭제에 실패했습니다.')
   }
