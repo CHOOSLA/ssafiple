@@ -7,6 +7,7 @@ class PostBase(BaseModel):
     title: str
     content: str
     author: str
+    location_id: Optional[str] = None
 
 class PostCreate(PostBase):
     password: str  # 평문 비밀번호 (요구사항)

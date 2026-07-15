@@ -7,6 +7,7 @@ class Post(Base):
     __tablename__ = "posts"
 
     id = Column(Integer, primary_key=True, index=True)
+    location_id = Column(String(50), index=True, nullable=True) # 장소별 게시판 분류용
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     author = Column(String(50), nullable=False)

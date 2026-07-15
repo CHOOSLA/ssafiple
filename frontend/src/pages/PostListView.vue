@@ -125,7 +125,11 @@ const fetchPosts = async () => {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get('/posts/')
+    // 맵에서 선택한 장소의 id (없으면 전체 조회)
+    const locId = mapStore.selectedLocation?.id || router.currentRoute.value.query.location_id
+    const params = locId ? { location_id: locId } : {}
+    
+    const { data } = await api.get('/posts/', { params })
     posts.value = data
   } catch (err) {
     error.value = '게시글을 불러오지 못했습니다.'
