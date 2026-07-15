@@ -4,7 +4,7 @@
     <!-- 로고 및 검색 헤더 영역 (LocalHub 디자인 참조) -->
     <div class="header-section">
       <div class="brand-row">
-        <span class="brand-logo">S</span>
+        <img class="brand-logo" src="/favicon.svg" alt="SSAFIPLE 로고" />
         <div class="brand-text">
           <div class="brand-title">SSAFIPLE</div>
           <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
@@ -185,14 +185,7 @@ onUnmounted(() => {
 .brand-logo {
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: var(--accent, #f15b4c);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 900;
-  font-size: 16px;
+  display: block;
 }
 
 .brand-title {

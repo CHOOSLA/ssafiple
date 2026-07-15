@@ -3,7 +3,7 @@
     <section class="app-shell">
       <header class="panel-header">
         <div class="brand-row">
-          <span class="brand-badge">S</span>
+          <img class="brand-badge" src="/favicon.svg" alt="SSAFIPLE 로고" />
           <div>
             <div class="brand-title">SSAFIPLE</div>
             <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>

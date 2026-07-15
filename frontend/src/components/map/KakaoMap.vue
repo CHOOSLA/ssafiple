@@ -156,15 +156,27 @@ const renderMap = () => {
       
       const sw = bounds.getSouthWest()
       const ne = bounds.getNorthEast()
-      const center = mapInstance.value.getCenter()
+      const physicalCenter = mapInstance.value.getCenter()
+      
+      // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 계산
+      const proj = mapInstance.value.getProjection()
+      let visualCenter = physicalCenter
+      if (proj) {
+        const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
+        // 패널이 없으면 기본 550px 가정, 시각적 중앙은 실제 중심보다 패널 절반만큼 우측에 위치
+        const panelWidth = panel ? panel.offsetWidth : 550
+        let point = proj.pointFromCoords(physicalCenter)
+        point.x = point.x + (panelWidth / 2)
+        visualCenter = proj.coordsFromPoint(point)
+      }
       
       mapStore.fetchLocations(null, null, {
         sw_lat: sw.getLat(),
         sw_lng: sw.getLng(),
         ne_lat: ne.getLat(),
         ne_lng: ne.getLng(),
-        center_lat: center.getLat(),
-        center_lng: center.getLng()
+        center_lat: visualCenter.getLat(),
+        center_lng: visualCenter.getLng()
       })
     }, 300) // 0.3초 동안 추가 이동이 없으면 한 번만 API 호출
   })
