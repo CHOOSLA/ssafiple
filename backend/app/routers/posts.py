@@ -36,17 +36,23 @@ def create_post(post_in: PostCreate, db: Session = Depends(get_db)):
         content=post_in.content,
         author=post_in.author,
         password=post_in.password,  # 평문 저장 (요구사항)
-        image_url=post_in.image_url
+        image_url=post_in.image_url,
+        location_id=post_in.location_id
     )
     db.add(db_post)
     db.commit()
     db.refresh(db_post)
     return db_post
 
+from typing import List, Optional
+
 @router.get("/", response_model=List[PostOut])
-def list_posts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_posts(location_id: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     # 삭제되지 않은 게시글만 조회
-    posts = db.query(Post).filter(Post.is_deleted == False).offset(skip).limit(limit).all()
+    query = db.query(Post).filter(Post.is_deleted == False)
+    if location_id:
+        query = query.filter(Post.location_id == location_id)
+    posts = query.offset(skip).limit(limit).all()
     return posts
 
 @router.get("/{post_id}", response_model=PostOut)

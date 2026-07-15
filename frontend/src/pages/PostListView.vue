@@ -85,9 +85,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMapStore } from '@/stores/mapStore'
 import api from '../api'
 
 const router = useRouter()
+const mapStore = useMapStore()
 
 const posts = ref([])
 const loading = ref(false)
@@ -95,10 +97,10 @@ const error = ref('')
 const searchQuery = ref('')
 const activeTab = ref('posts')
 
-// 특정 장소에 종속된 게시판 UI가 아직 없어 시안(post-items.png)의 목업 장소 정보로 채움
-const placeName = '경복궁'
-const placeCategory = '관광지'
-const placeAddress = '서울 종로구 사직로 161'
+// 스토어에서 선택된 장소 정보를 가져와 화면에 표시
+const placeName = computed(() => mapStore.selectedLocation?.name || '전체 장소')
+const placeCategory = computed(() => mapStore.selectedLocation?.category || '')
+const placeAddress = computed(() => mapStore.selectedLocation?.address || '')
 
 const goBack = () => {
   router.push('/')
@@ -123,7 +125,11 @@ const fetchPosts = async () => {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get('/posts/')
+    // 맵에서 선택한 장소의 id (없으면 전체 조회)
+    const locId = mapStore.selectedLocation?.id || router.currentRoute.value.query.location_id
+    const params = locId ? { location_id: locId } : {}
+    
+    const { data } = await api.get('/posts/', { params })
     posts.value = data
   } catch (err) {
     error.value = '게시글을 불러오지 못했습니다.'

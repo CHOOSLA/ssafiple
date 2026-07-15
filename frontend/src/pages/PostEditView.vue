@@ -63,10 +63,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useMapStore } from '@/stores/mapStore'
 import api from '../api'
 
 const route = useRoute()
 const router = useRouter()
+const mapStore = useMapStore()
 
 const isEdit = computed(() => !!route.params.id)
 const title = ref('')
@@ -145,12 +147,14 @@ const confirmAuthModal = async () => {
         password: passwordInput.value
       })
     } else {
+      const locId = mapStore.selectedLocation?.id || route.query.location_id
       await api.post('/posts/', {
         title: title.value,
         content: content.value,
         author: authorInput.value,
         password: passwordInput.value,
-        image_url: imageUrl.value || null
+        image_url: imageUrl.value || null,
+        location_id: locId || null
       })
     }
     showAuthModal.value = false
