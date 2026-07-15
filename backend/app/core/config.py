@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(default="sqlite:///./localhub.db")
     OPENAI_API_KEY: str = Field(default="")
     CORS_ORIGINS: str = Field(default="http://localhost:5173,http://127.0.0.1:5173")
+    # 길찾기(경로 안내) 기능용 카카오모빌리티 REST API 키
+    KAKAO_REST_API_KEY: str = Field(default="")
 
     # 챗봇(CHT) 설정
     OPENAI_MODEL: str = Field(default="gpt-5-mini")

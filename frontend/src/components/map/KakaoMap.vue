@@ -41,6 +41,8 @@ let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
 let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
 let idleTimer = null // 맵 조작 이벤트 디바운싱용 타이머
+let routePolyline = null // 길찾기 경로 폴리라인
+let routeEndpointMarkers = [] // 길찾기 출발/도착 마커
 
 // HTML5 Geolocation API로 내 위치 찾기
 const moveToMyLocation = () => {
@@ -569,6 +571,44 @@ watch(() => mapStore.selectedLocation, (loc) => {
     updateNameLabels()
   }
 }, { immediate: true })
+
+// 길찾기(경로 안내) 결과가 스토어에 채워지면 지도에 폴리라인으로 그리기
+watch(() => mapStore.routePath, (path) => {
+  if (!mapInstance.value) return
+
+  // 이전 경로/마커 정리
+  if (routePolyline) {
+    routePolyline.setMap(null)
+    routePolyline = null
+  }
+  routeEndpointMarkers.forEach(m => m.setMap(null))
+  routeEndpointMarkers = []
+
+  if (!path || path.length === 0) return
+
+  const linePath = path.map(p => new window.kakao.maps.LatLng(p.lat, p.lng))
+
+  routePolyline = new window.kakao.maps.Polyline({
+    path: linePath,
+    strokeWeight: 5,
+    strokeColor: '#f15b4c',
+    strokeOpacity: 0.85,
+    strokeStyle: 'solid'
+  })
+  routePolyline.setMap(mapInstance.value)
+
+  // 출발/도착 지점 마커 표시
+  const startMarker = new window.kakao.maps.Marker({ position: linePath[0] })
+  const endMarker = new window.kakao.maps.Marker({ position: linePath[linePath.length - 1] })
+  startMarker.setMap(mapInstance.value)
+  endMarker.setMap(mapInstance.value)
+  routeEndpointMarkers = [startMarker, endMarker]
+
+  // 경로 전체가 화면에 들어오도록 범위 조정
+  const bounds = new window.kakao.maps.LatLngBounds()
+  linePath.forEach(pt => bounds.extend(pt))
+  mapInstance.value.setBounds(bounds)
+})
 </script>
 
 <style scoped>
@@ -714,6 +754,14 @@ watch(() => mapStore.selectedLocation, (loc) => {
 :deep(.hover-category) {
   font-size: 12px;
   font-weight: 600;
+}
+
+/* 카카오맵이 CustomOverlay 콘텐츠를 감싸는 무명 래퍼 div가 마우스 이벤트를 가로채므로,
+   내부 콘텐츠의 pointer-events: none만으로는 부족하다. 래퍼까지 이벤트를 통과시켜야
+   라벨이나 팝업에 가려진 다른 핀들도 hover가 가능해진다. */
+:deep(div:has(> .marker-name-label)),
+:deep(div:has(> .hover-pane)) {
+  pointer-events: none;
 }
 
 :deep(.marker-name-label) {

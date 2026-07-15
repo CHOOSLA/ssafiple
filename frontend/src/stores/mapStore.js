@@ -89,6 +89,64 @@ export const useMapStore = defineStore('map', () => {
     // 여기서 MapView 컴포넌트 내의 지도 중심 이동 등을 트리거할 수 있습니다.
   }
 
+  // 길찾기(경로 안내) 상태 — 현재 위치 → 선택 장소
+  const routePath = ref([])
+  const routeInfo = ref(null) // { duration, distance }
+  const routeLoading = ref(false)
+  const routeError = ref('')
+
+  const getCurrentPosition = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('이 브라우저는 위치 정보를 지원하지 않습니다.'))
+        return
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false,
+        timeout: 8000
+      })
+    })
+  }
+
+  const fetchDirections = async (destLat, destLng) => {
+    routeLoading.value = true
+    routeError.value = ''
+    routeInfo.value = null
+    routePath.value = []
+
+    try {
+      const position = await getCurrentPosition()
+      const { data } = await api.get('/directions/', {
+        params: {
+          origin_lat: position.coords.latitude,
+          origin_lng: position.coords.longitude,
+          dest_lat: destLat,
+          dest_lng: destLng
+        }
+      })
+      routePath.value = data.path
+      routeInfo.value = { duration: data.duration, distance: data.distance }
+    } catch (err) {
+      if (err?.code === 1) {
+        // GeolocationPositionError.PERMISSION_DENIED
+        routeError.value = '위치 권한이 거부되었습니다. 브라우저 설정에서 위치 접근을 허용해주세요.'
+      } else if (err?.code === 2 || err?.code === 3) {
+        routeError.value = '현재 위치를 확인할 수 없습니다.'
+      } else {
+        routeError.value = '경로를 찾을 수 없습니다.'
+      }
+    } finally {
+      routeLoading.value = false
+    }
+  }
+
+  const clearRoute = () => {
+    routePath.value = []
+    routeInfo.value = null
+    routeError.value = ''
+    routeLoading.value = false
+  }
+
   return {
     locations,
     isLoading,
@@ -100,6 +158,12 @@ export const useMapStore = defineStore('map', () => {
     fetchLocations,
     fetchMoreLocations,
     selectLocation,
-    setSearchQuery
+    setSearchQuery,
+    routePath,
+    routeInfo,
+    routeLoading,
+    routeError,
+    fetchDirections,
+    clearRoute
   }
 })
