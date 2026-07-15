@@ -286,6 +286,13 @@ const renderMap = () => {
     resetSpiderfiedMarkers() // 줌 변경 시에도 원상복구
     updateNameLabels()
   })
+
+  // 지도 생성 직후 데이터를 가져오도록 idle 이벤트를 1회 강제 트리거
+  setTimeout(() => {
+    if (mapInstance.value) {
+      window.kakao.maps.event.trigger(mapInstance.value, 'idle')
+    }
+  }, 100)
 }
 
 const updateNameLabels = () => {
