@@ -1,5 +1,15 @@
 <template>
-  <div id="map-root" class="kakao-map-container"></div>
+  <div class="map-wrapper">
+    <div id="map-root" class="kakao-map-container"></div>
+    
+    <!-- 내 위치로 이동 버튼 -->
+    <button class="my-location-btn" @click="moveToMyLocation" title="내 위치로 이동">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
+  </div>
 </template>
 
 <script setup>
@@ -18,6 +28,49 @@ let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
 let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
 let idleTimer = null // 맵 조작 이벤트 디바운싱용 타이머
+
+// HTML5 Geolocation API로 내 위치 찾기
+const moveToMyLocation = () => {
+  if (navigator.geolocation) {
+    // 사용자가 권한을 허용하면 콜백 실행
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        const moveLatLon = new window.kakao.maps.LatLng(lat, lng)
+        
+        if (mapInstance.value) {
+          // 약간 확대된 상태(레벨 4)로 부드럽게 이동
+          mapInstance.value.setLevel(4)
+          
+          // 왼쪽 패널 너비를 고려하여 시각적 중앙으로 이동
+          const proj = mapInstance.value.getProjection()
+          const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
+          const panelWidth = panel ? panel.offsetWidth : 550
+          
+          if (proj) {
+            let point = proj.pointFromCoords(moveLatLon)
+            point.x = point.x - (panelWidth / 2)
+            mapInstance.value.panTo(proj.coordsFromPoint(point))
+          } else {
+            mapInstance.value.panTo(moveLatLon)
+          }
+        }
+      },
+      (error) => {
+        console.error(error)
+        alert('위치 정보를 가져올 수 없습니다. 브라우저의 위치 권한 설정을 확인해주세요.')
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    )
+  } else {
+    alert('이 브라우저에서는 위치 정보를 지원하지 않습니다.')
+  }
+}
 
 // 부드러운 마커(와 이름 라벨) 이동을 위한 애니메이션 함수
 const animateMarkerTo = (marker, startPos, endPos, duration = 250) => {
@@ -461,11 +514,48 @@ watch(() => mapStore.selectedLocation, (loc) => {
 </script>
 
 <style scoped>
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .kakao-map-container {
   width: 100%;
   height: 100%;
   /* 지도가 부드럽게 나타나도록 기본 스타일 지정 */
   background: var(--bg-color);
+}
+
+/* 내 위치 버튼 CSS */
+.my-location-btn {
+  position: absolute;
+  right: 20px;
+  bottom: 30px;
+  width: 44px;
+  height: 44px;
+  background: #fff;
+  border: 1px solid #eceae6;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1c1b1a;
+  transition: all 0.2s ease;
+}
+
+.my-location-btn:hover {
+  background: #f4f2ee;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.my-location-btn svg {
+  width: 22px;
+  height: 22px;
 }
 
 /* Yelp 스타일 커스텀 오버레이 팝업 CSS */
