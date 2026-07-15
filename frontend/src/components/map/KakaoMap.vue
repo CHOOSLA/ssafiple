@@ -2,6 +2,19 @@
   <div class="map-wrapper">
     <div id="map-root" class="kakao-map-container"></div>
     
+    <!-- 지도를 너무 넓게 축소했을 때 지도 위에 뜨는 플로팅 안내 배너 -->
+    <Transition name="fade">
+      <div v-if="mapStore.isZoomOutTooMuch" class="floating-zoom-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line>
+        </svg>
+        <div class="text">
+          <p>지도를 더 확대해주세요</p>
+          <span>이 지역의 핫플을 보려면 화면을 당겨보세요.</span>
+        </div>
+      </div>
+    </Transition>
+    
     <!-- 내 위치로 이동 버튼 -->
     <button class="my-location-btn" @click="moveToMyLocation" title="내 위치로 이동">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -552,6 +565,55 @@ watch(() => mapStore.selectedLocation, (loc) => {
   height: 100%;
   /* 지도가 부드럽게 나타나도록 기본 스타일 지정 */
   background: var(--bg-color);
+}
+
+/* 플로팅 줌 안내 배너 CSS */
+.floating-zoom-warning {
+  position: absolute;
+  top: 24px;
+  /* 화면이 왼쪽 패널(약 450px)로 가려지므로 그 우측 공간의 중앙쯤 오도록 설정 */
+  left: calc(50% + 225px); 
+  transform: translateX(-50%);
+  background: rgba(28, 27, 26, 0.85); /* 다크 모드 풍의 반투명 배경 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 12px 20px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  z-index: 20;
+  pointer-events: none; /* 클릭 방해 금지 */
+}
+
+.floating-zoom-warning svg {
+  width: 20px;
+  height: 20px;
+  color: #fff;
+}
+
+.floating-zoom-warning .text p {
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  margin: 0 0 2px 0;
+}
+
+.floating-zoom-warning .text span {
+  font-size: 12px;
+  color: #d1cfc7;
+}
+
+/* 뷰 트랜지션 (나타나고 사라질 때 부드럽게) */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
 }
 
 /* 내 위치 버튼 CSS */

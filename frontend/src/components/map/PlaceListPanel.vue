@@ -26,15 +26,11 @@
       <div class="list-header">주변 장소 <span>{{ mapStore.locations.length }}</span>곳 · 핀을 눌러 탐색하세요</div>
       
       <div class="list-body">
-        <!-- 지도를 너무 넓게 축소했을 때 안내 -->
-        <div v-if="mapStore.isZoomOutTooMuch" class="zoom-warning">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-          <p>지도를 더 확대해주세요.</p>
-          <span>해당 지역의 상세 장소를 보려면<br/>지도를 확대하거나 검색어를 입력하세요.</span>
+        <div v-if="mapStore.isLoading" class="loading">데이터를 불러오는 중입니다...</div>
+        <!-- 줌 아웃 시(결과 0개)에도 깔끔하게 표시되도록 메시지 통일 -->
+        <div v-else-if="mapStore.locations.length === 0" class="empty">
+          {{ mapStore.isZoomOutTooMuch ? '지도를 더 확대해주세요.' : '검색 결과가 없습니다.' }}
         </div>
-        
-        <div v-else-if="mapStore.isLoading" class="loading">데이터를 불러오는 중입니다...</div>
-        <div v-else-if="mapStore.locations.length === 0" class="empty">검색 결과가 없습니다.</div>
         
         <button 
           v-else 
@@ -435,32 +431,6 @@ onUnmounted(() => {
   padding: 40px 0;
   color: #8a877f;
   font-size: 14px;
-}
-
-.zoom-warning {
-  text-align: center;
-  padding: 60px 20px;
-  color: #a8a49b;
-}
-
-.zoom-warning svg {
-  width: 36px;
-  height: 36px;
-  color: #c2bfb7;
-  margin-bottom: 12px;
-}
-
-.zoom-warning p {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1c1b1a;
-  margin-bottom: 8px;
-}
-
-.zoom-warning span {
-  font-size: 13px;
-  line-height: 1.4;
-  display: block;
 }
 
 /* 무한 스크롤 관찰 타겟 */
