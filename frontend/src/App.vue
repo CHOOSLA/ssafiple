@@ -72,12 +72,11 @@ const stopDrag = () => {
 </script>
 
 <style scoped>
-/* LocalHub.dc.html 디자인 스펙 완벽 반영 */
 .app-root {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: var(--bg-color, #eef0ea);
+  background: linear-gradient(135deg, var(--bg-color, #eef0ea), #f4f1ea);
 }
 
 .map-viewport {
@@ -94,8 +93,9 @@ const stopDrag = () => {
   z-index: 20;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: linear-gradient(135deg, rgba(255,255,255,0.97), rgba(243,239,232,0.95));
   box-shadow: 2px 0 26px rgba(20, 20, 19, 0.16);
+  overflow-y: auto;
 }
 
 /* 크기 조절 핸들 영역 */
