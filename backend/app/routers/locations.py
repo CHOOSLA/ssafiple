@@ -31,16 +31,27 @@ def list_locations(
     if sw_lng is not None and ne_lng is not None:
         query = query.filter(Location.longitude >= sw_lng, Location.longitude <= ne_lng)
         
-    from app.models import Post
-    
+    from app.models import Post, Comment
+
     locs = query.offset(skip).limit(limit).all()
-    
+
     result = []
     for loc in locs:
         post_query = db.query(Post).filter(Post.location_id == str(loc.id), Post.is_deleted == False)
         count = post_query.count()
-        latest = post_query.order_by(Post.created_at.desc()).first()
-        
+        latest_posts = post_query.order_by(Post.created_at.desc()).limit(2).all()
+
+        preview_list = []
+        for p in latest_posts:
+            comment_count = db.query(Comment).filter(Comment.post_id == p.id, Comment.is_deleted == False).count()
+            snippet = p.content[:44] + '…' if p.content and len(p.content) > 44 else (p.content or '')
+            preview_list.append({
+                "id": p.id,
+                "title": p.title,
+                "snippet": snippet,
+                "comment_count": comment_count
+            })
+
         loc_dict = {
             "id": loc.id,
             "name": loc.name,
@@ -51,7 +62,7 @@ def list_locations(
             "image_url": loc.image_url,
             "description": loc.description,
             "post_count": count,
-            "latest_post_title": latest.title if latest else None
+            "latest_posts": preview_list
         }
         result.append(loc_dict)
     return result

@@ -1,5 +1,11 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
+class PostPreview(BaseModel):
+    id: int
+    title: str
+    snippet: str
+    comment_count: int
 
 class LocationBase(BaseModel):
     name: str
@@ -16,7 +22,7 @@ class LocationCreate(LocationBase):
 class LocationOut(LocationBase):
     id: int
     post_count: Optional[int] = 0
-    latest_post_title: Optional[str] = None
+    latest_posts: List[PostPreview] = []
 
     class Config:
         from_attributes = True
