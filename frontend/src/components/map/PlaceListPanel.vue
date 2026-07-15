@@ -18,6 +18,15 @@
           v-model="mapStore.searchQuery"
           @keyup.enter="handleSearch"
         />
+        <button
+          v-if="mapStore.searchQuery"
+          type="button"
+          class="search-clear-btn"
+          aria-label="검색어 지우기"
+          @click="clearSearch"
+        >
+          ×
+        </button>
       </div>
     </div>
 
@@ -131,6 +140,11 @@ const handleSearch = () => {
   mapStore.fetchLocations(null, mapStore.searchQuery)
 }
 
+const clearSearch = () => {
+  mapStore.setSearchQuery('')
+  handleSearch()
+}
+
 const goToPosts = (loc) => {
   mapStore.selectLocation(loc)
   router.push(`/locations/${loc.id}/posts`)
@@ -234,6 +248,27 @@ onUnmounted(() => {
   font-size: 14px;
   color: #1c1b1a;
   min-width: 0;
+}
+
+.search-clear-btn {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #d8d5cd;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.search-clear-btn:hover {
+  background: #b0ada5;
 }
 
 /* 리스트 컨테이너 */
