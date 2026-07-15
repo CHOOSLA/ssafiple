@@ -133,7 +133,7 @@ const drawMarkers = (locations) => {
     // SVG 이미지를 Data URI로 변환하여 정식 Marker와 MarkerImage를 사용합니다.
     const svgString = `
       <svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">
-        <path d="M17 0C7.6 0 0 7.6 0 17c0 12.8 17 25 17 25s17-12.2 17-25C34 7.6 26.4 0 17 0z" fill="${color}" stroke="#ffffff" stroke-width="2.5" filter="drop-shadow(0px 4px 4px rgba(0,0,0,0.3))"/>
+        <path d="M17 0C7.6 0 0 7.6 0 17c0 12.8 17 25 17 25s17-12.2 17-25C34 7.6 26.4 0 17 0z" fill="${color}" stroke="#ffffff" stroke-width="2.5"/>
         <circle cx="17" cy="17" r="5" fill="#ffffff"/>
       </svg>
     `.trim()
