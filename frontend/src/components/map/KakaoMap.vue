@@ -480,8 +480,12 @@ watch(() => mapStore.selectedLocation, (loc) => {
   if (loc && loc.latitude && loc.longitude && mapInstance.value) {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
-    // 선택된 장소로 지도 레벨 살짝 확대 (애니메이션을 끄면 오버레이 좌표 어긋남 버그 방지)
-    mapInstance.value.setLevel(4)
+    // 사용자가 이미 충분히 확대해서 보고 있는 상태(레벨 1~4)라면 그 줌 레벨을 유지하고,
+    // 멀리서(레벨 5 이상) 보고 있었다면 핀의 주변이 보이도록 레벨 4로 적당히 줌 인 해줍니다.
+    const currentLevel = mapInstance.value.getLevel()
+    if (currentLevel > 4) {
+      mapInstance.value.setLevel(4)
+    }
     
     const panel = document.querySelector('.left-panel')
     const panelWidth = panel ? panel.offsetWidth : 550
