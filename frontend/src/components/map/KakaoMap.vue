@@ -4,9 +4,11 @@
 
 <script setup>
 import { onMounted, shallowRef, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
+const router = useRouter()
 // 지도 인스턴스, 클러스터러, 마커 같은 무거운 객체는 Vue의 Proxy(반응성) 래핑을 피해야 렉이 안 걸립니다.
 const mapInstance = shallowRef(null)
 const clustererInstance = shallowRef(null)
@@ -170,6 +172,9 @@ const drawMarkers = (locations) => {
       
       // 4. 오프셋이 적용된 새로운 중심으로 부드럽게 이동
       mapInstance.value.panTo(offsetLatLng)
+      
+      // 장소 선택 후 게시판 화면으로 이동
+      router.push({ path: '/posts', query: { location_id: loc.id } })
     })
 
     // Hover (마우스 오버) 이벤트 바인딩: 커스텀 오버레이로 사진/설명 Pane 띄우기
