@@ -28,13 +28,26 @@
         </div>
       </div>
 
+      <div class="quick-actions">
+        <button
+          v-for="label in QUICK_ACTIONS"
+          :key="label"
+          type="button"
+          class="quick-chip"
+          :disabled="chat.isLoading"
+          @click="handleQuickAction(label)"
+        >
+          {{ label }}
+        </button>
+      </div>
+
       <form class="input-area" @submit.prevent="handleSend">
         <div class="input-wrapper">
           <input
             v-model="draft"
             class="input-rounded"
             type="text"
-            placeholder="익명으로 채팅 보내기"
+            placeholder="메시지를 입력하세요"
             :disabled="chat.isLoading"
           />
         </div>
@@ -64,6 +77,8 @@
 import { nextTick, ref, watch } from 'vue'
 import { useChatStore } from '../stores/chat'
 
+const QUICK_ACTIONS = ['가볼 만한 곳 추천', '한강 근처 맛집', '요즘 축제 있어?']
+
 const chat = useChatStore()
 const draft = ref('')
 const messageListEl = ref(null)
@@ -85,6 +100,11 @@ const handleSend = async () => {
   const text = draft.value
   draft.value = ''
   await chat.sendMessage(text)
+}
+
+const handleQuickAction = (label) => {
+  if (chat.isLoading) return
+  chat.sendMessage(label)
 }
 </script>
 
@@ -215,6 +235,36 @@ const handleSend = async () => {
 
 .anim-typing span:nth-child(3) {
   animation-delay: 0.4s;
+}
+
+.quick-actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 9px 12px;
+  overflow-x: auto;
+  border-top: 1px solid #f0eee9;
+}
+
+.quick-chip {
+  flex: none;
+  white-space: nowrap;
+  background: #f4f2ee;
+  border: 1px solid #e8e5de;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #4a4843;
+  cursor: pointer;
+}
+
+.quick-chip:hover:not(:disabled) {
+  background: #eceae4;
+}
+
+.quick-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .input-area {
