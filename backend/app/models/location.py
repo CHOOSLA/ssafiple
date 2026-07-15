@@ -10,4 +10,5 @@ class Location(Base):
     address = Column(String(255), nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    image_url = Column(String(500), nullable=True)
     description = Column(Text, nullable=True)

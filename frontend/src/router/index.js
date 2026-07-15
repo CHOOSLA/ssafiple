@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../pages/HomeView.vue'
 import PostListView from '../pages/PostListView.vue'
 import PostDetailView from '../pages/PostDetailView.vue'
 import PostEditView from '../pages/PostEditView.vue'
@@ -10,7 +9,7 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: HomeView
+    component: MapView
   },
   {
     path: '/posts',

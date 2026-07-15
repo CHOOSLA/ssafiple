@@ -23,8 +23,8 @@ def load_json_files(raw_dir):
             try:
                 with open(filepath, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    # 만약 루트가 리스트가 아니라 특정 키(예: 'records')를 가진 객체라면 이에 대응해야 함
-                    items = data if isinstance(data, list) else data.get("records", [])
+                    # 만약 루트가 리스트가 아니라 특정 키(예: 'items' 또는 'records')를 가진 객체라면 이에 대응해야 함
+                    items = data if isinstance(data, list) else (data.get("items") or data.get("records") or [])
                     
                     # 파일 이름 등에서 카테고리 추출 유추 가능 (예: '서울_관광지.json' -> '관광지')
                     category_fallback = filename.replace("서울_", "").replace(".json", "")
@@ -40,6 +40,9 @@ def load_json_files(raw_dir):
                         # 지도 좌표 (mapx, mapy) 또는 (lon, lat) 추출
                         longitude_raw = item.get("mapx") or item.get("lon") or item.get("경도")
                         latitude_raw = item.get("mapy") or item.get("lat") or item.get("위도")
+                        
+                        # 이미지 정보 (firstimage 등)
+                        image_url = item.get("firstimage") or item.get("firstimage2") or item.get("image") or item.get("imageUrl")
                         
                         if name and longitude_raw and latitude_raw:
                             try:
@@ -57,6 +60,7 @@ def load_json_files(raw_dir):
                                     "address": address.strip() if address else None,
                                     "latitude": latitude,
                                     "longitude": longitude,
+                                    "image_url": image_url.strip() if image_url else None,
                                     "description": description.strip() if description else None
                                 })
                             except (ValueError, AssertionError) as e:
@@ -73,9 +77,9 @@ def seed_data():
     Base.metadata.create_all(bind=engine)
     
     # 2. Raw 데이터 경로 지정
-    # project_root/data/raw/
+    # project_root/data/
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    raw_data_dir = os.path.join(project_root, "data", "raw")
+    raw_data_dir = os.path.join(project_root, "data")
     
     print("Starting database seeding...")
     locations_to_seed = load_json_files(raw_data_dir)
@@ -87,15 +91,26 @@ def seed_data():
 
     # 3. 데이터 중복 체크 및 적재
     inserted_count = 0
+    
+    # 세션 내 중복 확인 캐시
+    seen_names = set()
+    for loc in db.query(Location.name).all():
+        seen_names.add(loc.name)
+
     for loc_data in locations_to_seed:
-        # 중복 방지 (관광지 이름 기준)
-        existing = db.query(Location).filter(Location.name == loc_data["name"]).first()
-        if not existing:
-            new_loc = Location(**loc_data)
-            db.add(new_loc)
-            inserted_count += 1
+        name = loc_data["name"]
+        # 중복 방지 (관광지 이름 기준) - 메모리/DB 양방향 체크
+        if name not in seen_names:
+            try:
+                new_loc = Location(**loc_data)
+                db.add(new_loc)
+                db.commit() # 건건이 커밋하여 에러 방지
+                seen_names.add(name)
+                inserted_count += 1
+            except Exception as e:
+                db.rollback()
+                print(f"[Error] Failed to insert {name}: {e}")
             
-    db.commit()
     print(f"Successfully seeded {inserted_count} new locations into localhub.db!")
     db.close()
 
