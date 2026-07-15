@@ -236,7 +236,7 @@ const drawMarkers = (locations) => {
       hoverOverlay = new window.kakao.maps.CustomOverlay({
         content: content,
         position: position,
-        yAnchor: 1.15, // 핀 바로 위에 가깝게 뜨도록 위치 조정
+        yAnchor: 1.3, // 핀 바로 위에 적당히 뜨도록 위치 조정
         zIndex: 999
       });
       
@@ -311,7 +311,7 @@ watch(() => mapStore.selectedLocation, (loc) => {
     selectedOverlay = new window.kakao.maps.CustomOverlay({
       content: content,
       position: position,
-      yAnchor: 1.15, // 핀과 가깝게
+      yAnchor: 1.3, // 핀과 적당한 간격
       zIndex: 1000
     })
     selectedOverlay.setMap(mapInstance.value)
