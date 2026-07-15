@@ -43,8 +43,14 @@ SYSTEM_PROMPT = (
     "서울의 관광지 추천, 축제 안내, 맛집 위치, 커뮤니티 게시글 관련 질문에 한국어로 친절하고 간결하게 답변하세요. "
     "답변은 3~5문장 이내로 요약하고, 확실하지 않은 정보는 추측하지 말고 모른다고 밝히세요. "
     "서울 여행 안내와 무관한 질문에는 정중히 답변할 수 없다고 안내하세요. "
-    "본문에서 언급하는 구체적 장소명은 예외 없이 **장소명**처럼 마크다운 볼드로 표시하세요"
-    "(지도 연동에 쓰이는 중요한 규칙이니 장소를 나열/비교/제안하는 모든 경우에 지키세요)."
+    "볼드(**...**) 표기는 지도 이동에 직접 쓰이는 매우 중요한 신호이므로 아래 규칙을 엄격히 지키세요: "
+    "1) [참고 데이터]에 실제로 존재하고 사용자에게 방문을 권하는 구체적인 가게/장소 고유명사에만 볼드를 사용하세요. "
+    "2) 지하철역명·동네/지역명(예: 건대입구, 홍대), 음식 종류나 메뉴(예: 샤브샤브, 국밥), "
+    "비교·제외·예시로만 언급한 장소는 절대 볼드로 표시하지 마세요. "
+    "3) [참고 데이터]에 질문과 맞는 장소가 없다면 볼드를 하나도 쓰지 말고, "
+    "구체적으로 추천할 데이터가 없다고 솔직히 답하세요. "
+    "4) [참고 데이터]에 실제로 존재하는지 확인되지 않은 가게 이름은 절대 지어내지 마세요. "
+    "그럴듯하게 들리는 이름이라도 [참고 데이터]에 없으면 언급도, 볼드 표시도 하지 마세요."
 )
 
 DEMO_REPLY = (
@@ -95,19 +101,25 @@ def find_matching_locations(db: Session, message: str, limit: int = MAX_MATCHED_
 
 
 def find_mentioned_locations(db: Session, reply_text: str, limit: int = MAX_MATCHED_LOCATIONS) -> List[Location]:
-    """LLM 답변에서 실제로 추천/언급된 장소를 찾아 지도 연동용으로 반환합니다.
+    """LLM 답변에서 실제로 추천된 장소를 찾아 지도 연동용으로 반환합니다.
 
-    답변의 **볼드** 강조 구문(SYSTEM_PROMPT가 장소명에 볼드를 쓰도록 지시함)을 우선 후보로
-    사용합니다. 볼드 구문 단위로만 토큰을 추출하므로, 강조되지 않은 일반 서술 문장에 등장하는
-    흔한 단어(예: "사람")가 무관한 장소명과 우연히 겹쳐 매칭되는 것을 방지합니다.
-    볼드 강조가 없거나 매칭 결과가 없으면 전체 텍스트 키워드 매칭(find_matching_locations)으로
-    폴백합니다.
+    답변의 **볼드** 강조 구문만 후보로 사용합니다(SYSTEM_PROMPT가 실제 추천 장소에만
+    볼드를 쓰고, 역명/동네명/음식종류/비교 대상에는 쓰지 말라고 엄격히 지시함).
+
+    의도적으로 전체 텍스트 키워드 매칭으로 폴백하지 않습니다: 일반 서술 문장에는 "건대입구",
+    "인근"처럼 흔하지만 장소명은 아닌 단어가 자주 등장하고, 이런 단어가 "OO건대입구점" 같은
+    무관한 프랜차이즈 매장명과 우연히 겹쳐 매칭되는 문제가 있었습니다. 볼드 강조가 없다면
+    "추천할 장소를 확신할 수 없다"는 신호로 보고 지도 연동 없이 빈 목록을 반환합니다.
     """
     matched: dict[int, Location] = {}
 
     for phrase in _extract_bold_phrases(reply_text):
         if len(matched) >= limit:
             break
+        if len(phrase) < 3:
+            # 2글자 이하 볼드 구문은 무관한 상호명과 우연히 겹칠 위험이 커서 매칭을 시도하지 않음
+            # (예: LLM이 지어낸 "거안"이 "타이거안경원"에 우연히 포함되는 경우)
+            continue
         rows = db.query(Location).filter(Location.name.like(f"%{phrase}%")).limit(limit).all()
         if not rows:
             for token in _extract_tokens(phrase):
@@ -117,10 +129,7 @@ def find_mentioned_locations(db: Session, reply_text: str, limit: int = MAX_MATC
         for loc in rows:
             matched.setdefault(loc.id, loc)
 
-    if matched:
-        return list(matched.values())[:limit]
-
-    return find_matching_locations(db, reply_text, limit)
+    return list(matched.values())[:limit]
 
 
 def location_embedding_text(loc: Location) -> str:
