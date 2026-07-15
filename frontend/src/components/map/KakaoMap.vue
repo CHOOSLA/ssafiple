@@ -17,6 +17,7 @@ let selectedOverlay = null // 선택된 장소 고정 오버레이
 let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
 let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
+let idleTimer = null // 맵 조작 이벤트 디바운싱용 타이머
 
 // 부드러운 마커(와 이름 라벨) 이동을 위한 애니메이션 함수
 const animateMarkerTo = (marker, startPos, endPos, duration = 250) => {
@@ -39,8 +40,15 @@ const animateMarkerTo = (marker, startPos, endPos, duration = 250) => {
     
     const currentLatLng = proj.coordsFromPoint(new window.kakao.maps.Point(currentX, currentY))
     marker.setPosition(currentLatLng)
+    
+    // 이름 텍스트 라벨이 있다면 같이 이동
     if (marker.nameLabelRef) {
       marker.nameLabelRef.setPosition(currentLatLng)
+    }
+    
+    // 만약 현재 이동 중인 마커가 선택된 장소라면, 큰 고정 팝업(selectedOverlay)도 같이 이동
+    if (selectedOverlay && mapStore.selectedLocation?.id === marker.locData?.id) {
+      selectedOverlay.setPosition(currentLatLng)
     }
     
     if (progress < 1) {
@@ -54,6 +62,10 @@ const resetSpiderfiedMarkers = () => {
   spiderfiedMarkers.forEach(m => {
     animateMarkerTo(m, m.getPosition(), m.originalPosition, 200)
     m.isSpiderfied = false
+    
+    // 원상복구 시 z-index 되돌리기
+    m.setZIndex(0)
+    if (m.nameLabelRef) m.nameLabelRef.setZIndex(900)
   })
   spiderfiedMarkers = []
 }
@@ -134,18 +146,27 @@ const renderMap = () => {
   // 맵 인스턴스 렌더링 직후 현재 스토어에 있는 위치 핀 찍기
   drawMarkers(mapStore.locations)
   
-  // 지도가 이동/확대/축소 완료될 때(idle)마다 화면에 보이는 범위 내 장소만 검색
+  // 지도가 이동/확대/축소 완료될 때(idle)마다 화면에 보이는 범위 내 장소만 검색 (디바운스 적용)
   window.kakao.maps.event.addListener(mapInstance.value, 'idle', () => {
-    const bounds = mapInstance.value.getBounds()
-    const sw = bounds.getSouthWest()
-    const ne = bounds.getNorthEast()
+    if (idleTimer) clearTimeout(idleTimer)
     
-    mapStore.fetchLocations(null, null, {
-      sw_lat: sw.getLat(),
-      sw_lng: sw.getLng(),
-      ne_lat: ne.getLat(),
-      ne_lng: ne.getLng()
-    })
+    idleTimer = setTimeout(() => {
+      const bounds = mapInstance.value.getBounds()
+      if (!bounds) return
+      
+      const sw = bounds.getSouthWest()
+      const ne = bounds.getNorthEast()
+      const center = mapInstance.value.getCenter()
+      
+      mapStore.fetchLocations(null, null, {
+        sw_lat: sw.getLat(),
+        sw_lng: sw.getLng(),
+        ne_lat: ne.getLat(),
+        ne_lng: ne.getLng(),
+        center_lat: center.getLat(),
+        center_lng: center.getLng()
+      })
+    }, 300) // 0.3초 동안 추가 이동이 없으면 한 번만 API 호출
   })
 
   // 지도 빈 공간 클릭 시 펼쳐진 마커들 원상복구
@@ -187,7 +208,10 @@ const catColors = {
 const drawMarkers = (locations) => {
   if (!mapInstance.value || !window.kakao || !clustererInstance.value || !Array.isArray(locations)) return
 
-  // 기존 클러스터러 및 마커 배열 초기화
+  // 기존 핀(마커) 메모리에서 완전히 지우기 (버그 방지)
+  markers.forEach(m => m.setMap(null))
+  
+  // 기존 클러스터러 초기화
   clustererInstance.value.clear()
   markers = []
   
@@ -279,6 +303,11 @@ const drawMarkers = (locations) => {
           
           animateMarkerTo(m, m.originalPosition, newPos, 300)
           m.isSpiderfied = true
+          
+          // 펼쳐진 핀이 다른 핀들보다 앞에 보이도록 z-index 상승
+          m.setZIndex(100)
+          if (m.nameLabelRef) m.nameLabelRef.setZIndex(950)
+          
           spiderfiedMarkers.push(m)
         })
       }
@@ -406,10 +435,8 @@ watch(() => mapStore.selectedLocation, (loc) => {
     
     // 선택된 마커의 텍스트 라벨 숨기기 및 이전 선택 라벨 복구 (updateNameLabels 재호출)
     updateNameLabels()
-  } else {
-    updateNameLabels()
   }
-})
+}, { immediate: true })
 </script>
 
 <style scoped>

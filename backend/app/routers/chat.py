@@ -19,7 +19,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 @router.post("", response_model=ChatResponse)
 def chat_with_ai(chat_req: ChatRequest, db: Session = Depends(get_db)):
     try:
-        reply = chat_service.generate_reply(
+        reply, locations = chat_service.generate_reply(
             db,
             chat_req.message,
             chat_req.history,
@@ -31,7 +31,7 @@ def chat_with_ai(chat_req: ChatRequest, db: Session = Depends(get_db)):
             detail="AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
         )
 
-    return ChatResponse(reply=reply)
+    return ChatResponse(reply=reply, locations=locations)
 
 
 @router.get("/rooms/{location_id}/messages", response_model=List[ChatMessageOut])

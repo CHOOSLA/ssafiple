@@ -12,8 +12,21 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=500)
     history: List[ChatMessage] = []
 
+class LocationBrief(BaseModel):
+    """챗봇이 답변과 함께 추천하는 장소의 지도 연동용 요약 정보."""
+    id: int
+    name: str
+    category: str | None = None
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+    class Config:
+        from_attributes = True
+
 class ChatResponse(BaseModel):
     reply: str
+    locations: List[LocationBrief] = []
 
 
 class ChatWsIncoming(BaseModel):
