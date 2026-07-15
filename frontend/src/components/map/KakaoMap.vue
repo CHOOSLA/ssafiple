@@ -172,6 +172,42 @@ const drawMarkers = (locations) => {
       mapInstance.value.panTo(offsetLatLng)
     })
 
+    // Hover (마우스 오버) 이벤트 바인딩: 커스텀 오버레이로 사진/설명 Pane 띄우기
+    let hoverOverlay = null;
+    window.kakao.maps.event.addListener(marker, 'mouseover', () => {
+      if (hoverOverlay) hoverOverlay.setMap(null);
+
+      // 이미지가 없으면 기본 회색 박스
+      const imageUrl = loc.firstimage || loc.firstimage2 || '';
+      const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">사진 없음</div>`;
+
+      const content = `
+        <div class="hover-pane">
+          ${imageTag}
+          <div class="hover-info">
+            <div class="hover-title">${loc.title}</div>
+            <div class="hover-category" style="color: ${color}">${loc.category}</div>
+          </div>
+        </div>
+      `;
+
+      hoverOverlay = new window.kakao.maps.CustomOverlay({
+        content: content,
+        position: position,
+        yAnchor: 1.5, // 핀 바로 위에 뜨도록 위치 조정
+        zIndex: 999
+      });
+      
+      hoverOverlay.setMap(mapInstance.value);
+
+      // mouseout 이벤트에 삭제 로직 바인딩
+      window.kakao.maps.event.addListener(marker, 'mouseout', () => {
+        if (hoverOverlay) {
+          hoverOverlay.setMap(null);
+        }
+      });
+    });
+
     // 개별적으로 setMap() 하지 않고 배열에만 모음
     markers.push(marker)
   })
@@ -192,5 +228,55 @@ watch(() => mapStore.locations, (newLocations) => {
   height: 100%;
   /* 지도가 부드럽게 나타나도록 기본 스타일 지정 */
   background: var(--bg-color);
+}
+
+/* Yelp 스타일 커스텀 오버레이 팝업 CSS */
+/* 주의: scoped CSS에서는 카카오맵이 동적으로 삽입하는 DOM요소에 스타일이 안 먹을 수 있으므로 :deep() 사용 */
+:deep(.hover-pane) {
+  width: 220px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(28, 27, 26, 0.2);
+  overflow: hidden;
+  border: 1px solid #eceae6;
+  font-family: inherit;
+  transform: translateY(-10px); /* 핀 위로 살짝 띄우기 */
+  pointer-events: none; /* 마우스 이벤트가 팝업 아래 지도로 통과되도록 */
+}
+
+:deep(.hover-image) {
+  width: 100%;
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+  background-color: #f4f2ee;
+}
+
+:deep(.hover-image.no-img) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a8a49b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+:deep(.hover-info) {
+  padding: 12px 14px;
+}
+
+:deep(.hover-title) {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1c1b1a;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:deep(.hover-category) {
+  font-size: 12px;
+  font-weight: 600;
 }
 </style>
