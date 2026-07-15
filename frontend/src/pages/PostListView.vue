@@ -45,11 +45,18 @@
           :class="{ active: activeTab === 'chat' }"
           @click="activeTab = 'chat'"
         >실시간 채팅</button>
+        <button
+          type="button"
+          class="tab-btn"
+          :class="{ active: activeTab === 'route' }"
+          @click="activeTab = 'route'"
+        >길찾기</button>
       </div>
 
       <template v-if="activeTab === 'posts'">
         <div class="list-toolbar">
           <router-link :to="`/locations/${$route.params.location_id}/posts/new`" class="write-btn"><span class="write-icon">+</span>글쓰기</router-link>
+          <button type="button" class="route-toolbar-btn" @click="goToRouteTab">🚗 길찾기</button>
         </div>
 
         <div class="panel-body">
@@ -73,16 +80,40 @@
         </div>
       </template>
 
+      <div v-else-if="activeTab === 'route'" class="panel-body route-panel">
+        <div v-if="mapStore.routeLoading" class="route-state">
+          <div class="route-state-icon">📍</div>
+          <div class="route-state-title">현재 위치를 확인하는 중...</div>
+        </div>
+
+        <div v-else-if="mapStore.routeInfo" class="route-result">
+          <RouteMiniMap :path="mapStore.routePath" class="route-result-map" />
+          <div class="route-result-duration">{{ routeDurationText }}</div>
+          <div class="route-result-distance">{{ routeDistanceText }}</div>
+          <button type="button" class="route-retry-btn" @click="handleFindRoute">다시 찾기</button>
+          <button type="button" class="route-close-btn" @click="mapStore.clearRoute()">경로 지우기</button>
+        </div>
+
+        <div v-else class="route-state">
+          <div class="route-state-icon">🚗</div>
+          <div class="route-state-title">{{ placeName }}까지 길찾기</div>
+          <p class="route-state-desc">현재 위치를 기준으로 자동차 경로와 예상 소요 시간을 확인할 수 있어요.</p>
+          <p v-if="mapStore.routeError" class="route-error">{{ mapStore.routeError }}</p>
+          <button type="button" class="route-start-btn" @click="handleFindRoute">길찾기 시작</button>
+        </div>
+      </div>
+
       <PlaceChatPanel v-else :location-id="route.params.location_id" />
     </section>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 import PlaceChatPanel from '@/components/chat/PlaceChatPanel.vue'
+import RouteMiniMap from '@/components/map/RouteMiniMap.vue'
 import api from '../api'
 
 const router = useRouter()
@@ -135,6 +166,37 @@ const goBack = () => {
   router.push('/')
 }
 
+const handleFindRoute = () => {
+  const destLat = location.value?.latitude ?? mapStore.selectedLocation?.latitude
+  const destLng = location.value?.longitude ?? mapStore.selectedLocation?.longitude
+  if (destLat == null || destLng == null) {
+    mapStore.routeError = '장소의 좌표 정보를 찾을 수 없습니다.'
+    return
+  }
+  mapStore.fetchDirections(destLat, destLng)
+}
+
+// 목록 상단의 빠른 길찾기 버튼: 길찾기 탭으로 전환 + 아직 조회 전이면 바로 시작
+const goToRouteTab = () => {
+  activeTab.value = 'route'
+  if (!mapStore.routeInfo && !mapStore.routeLoading) {
+    handleFindRoute()
+  }
+}
+
+const routeDurationText = computed(() => {
+  const seconds = mapStore.routeInfo?.duration
+  if (seconds == null) return ''
+  const minutes = Math.max(1, Math.round(seconds / 60))
+  return `🚗 ${minutes}분`
+})
+
+const routeDistanceText = computed(() => {
+  const meters = mapStore.routeInfo?.distance
+  if (meters == null) return ''
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1)}km` : `${meters}m`
+})
+
 const filteredPosts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return posts.value
@@ -170,6 +232,11 @@ const fetchPosts = async () => {
 onMounted(() => {
   fetchLocation()
   fetchPosts()
+})
+
+// 다른 장소로 이동/이탈 시 지도에 이전 경로가 남지 않도록 정리
+onUnmounted(() => {
+  mapStore.clearRoute()
 })
 </script>
 
@@ -312,6 +379,112 @@ onMounted(() => {
   color: #6b6864;
   font-size: 13.5px;
   line-height: 1.5;
+}
+
+.route-toolbar-btn {
+  background: #f4f2ee;
+  color: var(--text-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.route-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.route-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 320px;
+}
+
+.route-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 520px;
+}
+
+.route-result-map {
+  margin-bottom: 16px;
+}
+
+.route-state-icon {
+  font-size: 34px;
+  margin-bottom: 12px;
+}
+
+.route-state-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.route-state-desc {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.route-start-btn,
+.route-retry-btn {
+  margin-top: 18px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(241, 91, 76, 0.2);
+}
+
+.route-result-duration {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.route-result-distance {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.route-retry-btn {
+  margin-top: 18px;
+}
+
+.route-close-btn {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.route-error {
+  margin: 10px 0 0;
+  color: #d24b3d;
+  font-size: 12.5px;
 }
 
 .place-tabs {

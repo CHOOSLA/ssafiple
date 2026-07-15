@@ -18,6 +18,8 @@ let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
 let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
 let idleTimer = null // 맵 조작 이벤트 디바운싱용 타이머
+let routePolyline = null // 길찾기 경로 폴리라인
+let routeEndpointMarkers = [] // 길찾기 출발/도착 마커
 
 // 부드러운 마커(와 이름 라벨) 이동을 위한 애니메이션 함수
 const animateMarkerTo = (marker, startPos, endPos, duration = 250) => {
@@ -437,6 +439,44 @@ watch(() => mapStore.selectedLocation, (loc) => {
     updateNameLabels()
   }
 }, { immediate: true })
+
+// 길찾기(경로 안내) 결과가 스토어에 채워지면 지도에 폴리라인으로 그리기
+watch(() => mapStore.routePath, (path) => {
+  if (!mapInstance.value) return
+
+  // 이전 경로/마커 정리
+  if (routePolyline) {
+    routePolyline.setMap(null)
+    routePolyline = null
+  }
+  routeEndpointMarkers.forEach(m => m.setMap(null))
+  routeEndpointMarkers = []
+
+  if (!path || path.length === 0) return
+
+  const linePath = path.map(p => new window.kakao.maps.LatLng(p.lat, p.lng))
+
+  routePolyline = new window.kakao.maps.Polyline({
+    path: linePath,
+    strokeWeight: 5,
+    strokeColor: '#f15b4c',
+    strokeOpacity: 0.85,
+    strokeStyle: 'solid'
+  })
+  routePolyline.setMap(mapInstance.value)
+
+  // 출발/도착 지점 마커 표시
+  const startMarker = new window.kakao.maps.Marker({ position: linePath[0] })
+  const endMarker = new window.kakao.maps.Marker({ position: linePath[linePath.length - 1] })
+  startMarker.setMap(mapInstance.value)
+  endMarker.setMap(mapInstance.value)
+  routeEndpointMarkers = [startMarker, endMarker]
+
+  // 경로 전체가 화면에 들어오도록 범위 조정
+  const bounds = new window.kakao.maps.LatLngBounds()
+  linePath.forEach(pt => bounds.extend(pt))
+  mapInstance.value.setBounds(bounds)
+})
 </script>
 
 <style scoped>
