@@ -79,9 +79,9 @@ const renderMap = () => {
     }]
   })
   
-  // 오른쪽 아래(BOTTOMRIGHT)에 확대/축소(Zoom) 버튼 추가
+  // 줌 컨트롤 추가 (우측 상단으로 이동 - AI 챗봇 버튼과 겹침 방지)
   const zoomControl = new window.kakao.maps.ZoomControl()
-  mapInstance.value.addControl(zoomControl, window.kakao.maps.ControlPosition.BOTTOMRIGHT)
+  mapInstance.value.addControl(zoomControl, window.kakao.maps.ControlPosition.TOPRIGHT)
 
   console.log("카카오 지도가 성공적으로 렌더링되었습니다.")
 
