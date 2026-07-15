@@ -16,6 +16,47 @@ let markers = [] // 단순 배열로 관리
 let selectedOverlay = null // 선택된 장소 고정 오버레이
 let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
+let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
+
+// 부드러운 마커(와 이름 라벨) 이동을 위한 애니메이션 함수
+const animateMarkerTo = (marker, startPos, endPos, duration = 250) => {
+  if (!mapInstance.value) return
+  const proj = mapInstance.value.getProjection()
+  if (!proj) return
+  
+  const startPoint = proj.pointFromCoords(startPos)
+  const endPoint = proj.pointFromCoords(endPos)
+  const startTime = performance.now()
+  
+  const step = (currentTime) => {
+    let progress = (currentTime - startTime) / duration
+    if (progress > 1) progress = 1
+    
+    // easeOutQuad (부드럽게 감속)
+    const easing = 1 - (1 - progress) * (1 - progress)
+    const currentX = startPoint.x + (endPoint.x - startPoint.x) * easing
+    const currentY = startPoint.y + (endPoint.y - startPoint.y) * easing
+    
+    const currentLatLng = proj.coordsFromPoint(new window.kakao.maps.Point(currentX, currentY))
+    marker.setPosition(currentLatLng)
+    if (marker.nameLabelRef) {
+      marker.nameLabelRef.setPosition(currentLatLng)
+    }
+    
+    if (progress < 1) {
+      requestAnimationFrame(step)
+    }
+  }
+  requestAnimationFrame(step)
+}
+
+const resetSpiderfiedMarkers = () => {
+  spiderfiedMarkers.forEach(m => {
+    animateMarkerTo(m, m.getPosition(), m.originalPosition, 200)
+    m.isSpiderfied = false
+  })
+  spiderfiedMarkers = []
+}
 
 onMounted(() => {
   initMap()
@@ -107,8 +148,14 @@ const renderMap = () => {
     })
   })
 
+  // 지도 빈 공간 클릭 시 펼쳐진 마커들 원상복구
+  window.kakao.maps.event.addListener(mapInstance.value, 'click', () => {
+    resetSpiderfiedMarkers()
+  })
+
   // 줌 레벨이 변경될 때(확대/축소) 장소 이름 라벨 표시 여부 업데이트
   window.kakao.maps.event.addListener(mapInstance.value, 'zoom_changed', () => {
+    resetSpiderfiedMarkers() // 줌 변경 시에도 원상복구
     updateNameLabels()
   })
 }
@@ -152,6 +199,8 @@ const drawMarkers = (locations) => {
     activeHoverOverlay.setMap(null)
     activeHoverOverlay = null
   }
+  
+  resetSpiderfiedMarkers()
 
   locations.forEach(loc => {
     // 위도 경도 유효성 검사
@@ -181,32 +230,58 @@ const drawMarkers = (locations) => {
       position,
       image: markerImage
     })
+    marker.originalPosition = position
+    marker.locData = loc
 
-    // 마커 클릭 이벤트 바인딩 (카카오맵 정식 이벤트)
+    // 마커 클릭 이벤트 바인딩 (Spiderfier 로직 적용)
     window.kakao.maps.event.addListener(marker, 'click', () => {
-      mapStore.selectLocation(loc)
-      
-      // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 이동 알고리즘
-      const panel = document.querySelector('.left-panel')
-      const panelWidth = panel ? panel.offsetWidth : 550 // 기본값
-      
       const proj = mapInstance.value.getProjection()
-      // 1. 마커의 지리 좌표를 화면 픽셀 좌표(Point)로 변환
-      let point = proj.pointFromCoords(position)
+      if (!proj) return
       
-      // 2. 패널에 가려지지 않는 영역의 정중앙에 마커가 오려면, 
-      // 마커를 화면 중심보다 (패널너비 / 2) 만큼 오른쪽(시각적 중심)에 두어야 함.
-      // 따라서 지도의 중심 좌표는 마커 위치보다 (패널너비 / 2) 만큼 왼쪽(-x)으로 이동해야 합니다.
-      point.x = point.x - (panelWidth / 2)
+      const clickedPoint = proj.pointFromCoords(marker.originalPosition)
       
-      // 3. 계산된 픽셀 좌표를 다시 지리 좌표(LatLng)로 변환
-      const offsetLatLng = proj.coordsFromPoint(point)
-      
-      // 4. 오프셋이 적용된 새로운 중심으로 부드럽게 이동
-      mapInstance.value.panTo(offsetLatLng)
-      
-      // 장소 선택 후 게시판 화면으로 이동
-      router.push(`/locations/${loc.id}/posts`)
+      // 픽셀 거리 30 이내로 겹치는 마커 찾기
+      const overlappingMarkers = markers.filter(m => {
+        const p = proj.pointFromCoords(m.originalPosition)
+        const dx = p.x - clickedPoint.x
+        const dy = p.y - clickedPoint.y
+        return Math.sqrt(dx*dx + dy*dy) < 30
+      })
+
+      // 이미 펼쳐진 상태이거나, 겹치는 마커가 자신뿐이라면 -> 찐 클릭(게시판 이동)
+      if (marker.isSpiderfied || overlappingMarkers.length <= 1) {
+        resetSpiderfiedMarkers()
+        
+        mapStore.selectLocation(loc)
+        
+        // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 이동 알고리즘
+        const panel = document.querySelector('.left-panel')
+        const panelWidth = panel ? panel.offsetWidth : 550
+        
+        let point = proj.pointFromCoords(marker.originalPosition)
+        point.x = point.x - (panelWidth / 2)
+        const offsetLatLng = proj.coordsFromPoint(point)
+        
+        mapInstance.value.panTo(offsetLatLng)
+        router.push(`/locations/${loc.id}/posts`)
+      } else {
+        // 겹쳐진 핀이 여러 개라면 방사형(거미줄)으로 촤라락 펼치기
+        resetSpiderfiedMarkers()
+        
+        const angleStep = (Math.PI * 2) / overlappingMarkers.length
+        const radius = 45 // 45픽셀 밖으로 원형 배치
+        
+        overlappingMarkers.forEach((m, idx) => {
+          const angle = idx * angleStep
+          const nx = clickedPoint.x + Math.cos(angle) * radius
+          const ny = clickedPoint.y + Math.sin(angle) * radius
+          const newPos = proj.coordsFromPoint(new window.kakao.maps.Point(nx, ny))
+          
+          animateMarkerTo(m, m.originalPosition, newPos, 300)
+          m.isSpiderfied = true
+          spiderfiedMarkers.push(m)
+        })
+      }
     })
 
     // 지도 확대 시 보일 장소 이름 텍스트 라벨 생성
@@ -217,6 +292,9 @@ const drawMarkers = (locations) => {
       zIndex: 900
     });
     nameLabelOverlays.push({ id: loc.id, overlay: nameLabel })
+    
+    // 애니메이션 헬퍼에서 접근 가능하도록 참조 저장
+    marker.nameLabelRef = nameLabel
 
     // Hover (마우스 오버) 이벤트 바인딩: 커스텀 오버레이로 사진/설명 Pane 띄우기
     window.kakao.maps.event.addListener(marker, 'mouseover', () => {
@@ -244,9 +322,9 @@ const drawMarkers = (locations) => {
 
       activeHoverOverlay = new window.kakao.maps.CustomOverlay({
         content: content,
-        position: position,
+        position: marker.getPosition(), // 애니메이션 이동 상태 고려해 marker의 현재 좌표
         yAnchor: 1.3, // 핀 바로 위에 적당히 뜨도록 위치 조정
-        zIndex: 999
+        zIndex: 1100 // 선택된 오버레이(1000)보다 높게 설정하여 안 가려지도록 함
       });
       
       activeHoverOverlay.setMap(mapInstance.value);
