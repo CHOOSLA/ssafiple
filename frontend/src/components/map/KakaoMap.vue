@@ -198,9 +198,9 @@ const renderMap = () => {
   
   // 클러스터 클릭 시 시각적 중앙(왼쪽 패널 고려)으로 줌 인 하는 커스텀 로직
   window.kakao.maps.event.addListener(clustererInstance.value, 'clusterclick', (cluster) => {
-    // 현재 레벨에서 1단계 줌 인
+    // 현재 레벨에서 1단계 부드럽게 줌 인
     const level = mapInstance.value.getLevel() - 1
-    mapInstance.value.setLevel(level)
+    mapInstance.value.setLevel(level, { animate: true })
     
     // 클러스터의 중심좌표로 이동하되 왼쪽 패널 너비만큼 보정
     const center = cluster.getCenter()
@@ -502,10 +502,10 @@ watch(() => mapStore.selectedLocation, (loc) => {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
     // 사용자가 이미 충분히 확대해서 보고 있는 상태(레벨 1~4)라면 그 줌 레벨을 유지하고,
-    // 멀리서(레벨 5 이상) 보고 있었다면 핀의 주변이 보이도록 레벨 4로 적당히 줌 인 해줍니다.
+    // 멀리서(레벨 5 이상) 보고 있었다면 핀의 주변이 보이도록 레벨 4로 부드럽게 줌 인 해줍니다.
     const currentLevel = mapInstance.value.getLevel()
     if (currentLevel > 4) {
-      mapInstance.value.setLevel(4)
+      mapInstance.value.setLevel(4, { animate: true })
     }
     
     const panel = document.querySelector('.left-panel')
