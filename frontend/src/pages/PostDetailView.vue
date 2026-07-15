@@ -12,7 +12,7 @@
       <div v-if="!post" class="status-message">게시글을 불러오는 중...</div>
 
       <template v-else>
-        <img v-if="post.image_url" :src="post.image_url" class="post-image" alt="첨부 이미지" />
+        <img v-if="post.image_url" :src="resolvedImageUrl" class="post-image" alt="첨부 이미지" />
 
         <div class="post-content">
           <span class="pill">게시글</span>
@@ -73,6 +73,14 @@ const formatDate = (value) => {
   if (!value) return '-'
   return new Date(value).toLocaleDateString('ko-KR')
 }
+
+// 백엔드가 /uploads/... 상대경로를 반환하므로, 프론트 origin이 아닌 백엔드 origin 기준으로 풀어줘야 함
+const resolvedImageUrl = computed(() => {
+  const url = post.value?.image_url
+  if (!url) return ''
+  if (/^https?:\/\//.test(url)) return url
+  return `${import.meta.env.VITE_API_BASE_URL}${url}`
+})
 
 const fetchPost = async () => {
   try {

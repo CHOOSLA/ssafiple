@@ -22,7 +22,7 @@
         <span v-else-if="uploadError" class="helper-text error">{{ uploadError }}</span>
         <span v-else-if="imageUrl" class="helper-text">이미지 첨부됨</span>
       </div>
-      <img v-if="imageUrl" :src="imageUrl" class="preview-image" alt="첨부 이미지 미리보기" />
+      <img v-if="imageUrl" :src="resolvedImageUrl" class="preview-image" alt="첨부 이미지 미리보기" />
     </div>
 
     <footer class="write-footer">
@@ -81,6 +81,13 @@ const passwordInput = ref('')
 const authError = ref('')
 
 const submitDisabled = computed(() => !title.value.trim() || !content.value.trim())
+
+// 백엔드가 /uploads/... 상대경로를 반환하므로, 프론트 origin이 아닌 백엔드 origin 기준으로 풀어줘야 함
+const resolvedImageUrl = computed(() => {
+  if (!imageUrl.value) return ''
+  if (/^https?:\/\//.test(imageUrl.value)) return imageUrl.value
+  return `${import.meta.env.VITE_API_BASE_URL}${imageUrl.value}`
+})
 
 const fetchPost = async () => {
   if (!isEdit.value) return
