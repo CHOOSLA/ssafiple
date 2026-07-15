@@ -140,7 +140,7 @@ const confirmAuthModal = async () => {
         password: passwordInput.value
       })
     } else {
-      const locId = mapStore.selectedLocation?.id || route.query.location_id
+      const locId = route.params.location_id || mapStore.selectedLocation?.id
       await api.post('/posts/', {
         title: title.value,
         content: content.value,
@@ -151,7 +151,7 @@ const confirmAuthModal = async () => {
       })
     }
     showAuthModal.value = false
-    router.push('/posts')
+    router.push(`/locations/${route.params.location_id}/posts`)
   } catch (err) {
     authError.value = err.response?.status === 403 ? '비밀번호가 일치하지 않습니다.' : '저장에 실패했습니다.'
   }
@@ -159,9 +159,9 @@ const confirmAuthModal = async () => {
 
 const handleCancel = () => {
   if (isEdit.value) {
-    router.push(`/posts/${route.params.id}`)
+    router.push(`/locations/${route.params.location_id}/posts/${route.params.id}`)
   } else {
-    router.push('/posts')
+    router.push(`/locations/${route.params.location_id}/posts`)
   }
 }
 
