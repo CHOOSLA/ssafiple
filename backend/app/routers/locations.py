@@ -31,7 +31,30 @@ def list_locations(
     if sw_lng is not None and ne_lng is not None:
         query = query.filter(Location.longitude >= sw_lng, Location.longitude <= ne_lng)
         
-    return query.offset(skip).limit(limit).all()
+    from app.models import Post
+    
+    locs = query.offset(skip).limit(limit).all()
+    
+    result = []
+    for loc in locs:
+        post_query = db.query(Post).filter(Post.location_id == str(loc.id), Post.is_deleted == False)
+        count = post_query.count()
+        latest = post_query.order_by(Post.created_at.desc()).first()
+        
+        loc_dict = {
+            "id": loc.id,
+            "name": loc.name,
+            "category": loc.category,
+            "address": loc.address,
+            "latitude": loc.latitude,
+            "longitude": loc.longitude,
+            "image_url": loc.image_url,
+            "description": loc.description,
+            "post_count": count,
+            "latest_post_title": latest.title if latest else None
+        }
+        result.append(loc_dict)
+    return result
 
 @router.get("/{location_id}", response_model=LocationOut)
 def get_location(location_id: int, db: Session = Depends(get_db)):

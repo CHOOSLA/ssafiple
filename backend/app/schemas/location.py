@@ -15,6 +15,8 @@ class LocationCreate(LocationBase):
 
 class LocationOut(LocationBase):
     id: int
+    post_count: Optional[int] = 0
+    latest_post_title: Optional[str] = None
 
     class Config:
         from_attributes = True

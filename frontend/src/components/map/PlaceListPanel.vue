@@ -50,12 +50,15 @@
           <span class="place-info">
             <span class="p-name">{{ loc.name }}</span>
             <span class="p-addr">{{ loc.address }}</span>
-            <span class="p-posts">게시글 조회 필요</span>
+            <span class="p-posts">게시글 {{ loc.post_count || 0 }}개</span>
           </span>
 
           <!-- 오른쪽 게시글 미리보기 (공간만 차지) -->
           <span class="post-preview-area">
-            <span class="empty-preview">게시글 연동 전입니다</span>
+            <span v-if="loc.post_count > 0" class="latest-preview">
+              "{{ loc.latest_post_title }}"
+            </span>
+            <span v-else class="empty-preview">첫 글을 남겨주세요</span>
           </span>
         </button>
         
