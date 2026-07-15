@@ -33,7 +33,9 @@ export const useMapStore = defineStore('map', () => {
       const params = { skip: skip.value, limit: limit.value }
       if (category) params.category = category
       if (q) params.q = q
-      if (bbox) Object.assign(params, bbox)
+      if (bbox) {
+        Object.assign(params, bbox)
+      }
       
       const response = await api.get('/locations/', { params })
       const data = Array.isArray(response?.data) ? response.data : []
@@ -60,7 +62,9 @@ export const useMapStore = defineStore('map', () => {
       const params = { skip: skip.value, limit: limit.value }
       if (currentQuery.value.category) params.category = currentQuery.value.category
       if (currentQuery.value.q) params.q = currentQuery.value.q
-      if (currentQuery.value.bbox) Object.assign(params, currentQuery.value.bbox)
+      if (currentQuery.value.bbox) {
+        Object.assign(params, currentQuery.value.bbox)
+      }
       
       const response = await api.get('/locations/', { params })
       if (response.data.length > 0) {

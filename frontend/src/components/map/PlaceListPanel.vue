@@ -32,9 +32,10 @@
         <button 
           v-else 
           type="button"
-          v-for="loc in mapStore.locations" 
+          v-for="loc in displayLocations" 
           :key="loc.id" 
           class="place-card"
+          :class="{ 'selected-place': mapStore.selectedLocation?.id === loc.id }"
           @click="goToPosts(loc)"
         >
           <!-- 왼쪽 썸네일 공간 -->
@@ -77,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 
@@ -95,6 +96,21 @@ const catColors = {
 const getCatColor = (cat) => {
   return catColors[cat] || '#f15b4c'
 }
+
+// 선택된 장소가 리스트 내에 존재하면 맨 위로 끌어올리기 위한 computed 배열
+const displayLocations = computed(() => {
+  const locs = [...mapStore.locations]
+  if (!mapStore.selectedLocation) return locs
+
+  const targetId = mapStore.selectedLocation.id
+  const idx = locs.findIndex(loc => loc.id === targetId)
+
+  if (idx > -1) {
+    const [selected] = locs.splice(idx, 1)
+    locs.unshift(selected)
+  }
+  return locs
+})
 
 // 게시글 미리보기를 항상 2슬롯으로 고정 (실제 글 또는 null)
 const previewSlots = (loc) => {
@@ -121,7 +137,9 @@ const observerTarget = ref(null)
 let observer = null
 
 onMounted(() => {
-  mapStore.fetchLocations()
+  if (mapStore.locations.length === 0) {
+    mapStore.fetchLocations()
+  }
   
   // 무한 스크롤 옵저버 설정
   observer = new IntersectionObserver((entries) => {
@@ -241,6 +259,7 @@ onUnmounted(() => {
 
 /* 장소 카드 디자인 (LocalHub 원본 스타일 복구) */
 .place-card {
+  container-type: inline-size; /* 컨테이너 쿼리 적용을 위한 선언 */
   display: flex;
   gap: 14px;
   width: 100%;
@@ -258,6 +277,12 @@ onUnmounted(() => {
 
 .place-card:hover {
   background: #faf9f6;
+}
+
+.selected-place {
+  background: #fffcfb !important;
+  border-left: 4px solid #f15b4c !important;
+  padding-left: 14px; /* border-left가 추가된 만큼 패딩 보정 */
 }
 
 /* 썸네일 영역 */
@@ -388,6 +413,21 @@ onUnmounted(() => {
   font-size: 11px;
   color: #b0ada5;
   margin-top: auto;
+}
+
+/* 컨테이너 쿼리: 패널(카드) 너비가 줄어들 때 반응형 처리 */
+@container (max-width: 550px) {
+  /* 카드가 550px 이하로 좁아지면 두 번째 미리보기 슬롯을 숨김 (1개만 표시) */
+  .post-preview-area > span:nth-child(2) {
+    display: none;
+  }
+}
+
+@container (max-width: 420px) {
+  /* 카드가 420px 이하로 아주 좁아지면 미리보기 영역 전체를 숨김 */
+  .post-preview-area {
+    display: none;
+  }
 }
 
 .loading, .empty {
