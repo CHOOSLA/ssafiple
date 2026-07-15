@@ -16,6 +16,12 @@ export const useChatStore = defineStore('chat', () => {
   const messages = ref([{ ...INITIAL_MESSAGE }])
   const isLoading = ref(false)
   const isOpen = ref(false)
+  // 그때그때 입력하는 취향 힌트 — 서버/localStorage에 영속 저장하지 않고 세션 동안만 유지
+  const preferences = ref('')
+
+  const setPreferences = (text) => {
+    preferences.value = text
+  }
 
   const addMessage = (sender, text, locations = []) => {
     messages.value.push({
@@ -59,7 +65,7 @@ export const useChatStore = defineStore('chat', () => {
     addMessage('user', trimmed)
     setLoading(true)
     try {
-      const { reply, locations } = await postChat(trimmed, history)
+      const { reply, locations } = await postChat(trimmed, history, preferences.value.trim())
       addMessage('ai', reply, locations)
       if (locations.length > 0) {
         focusOnLocation(locations[0])
@@ -75,6 +81,8 @@ export const useChatStore = defineStore('chat', () => {
     messages,
     isLoading,
     isOpen,
+    preferences,
+    setPreferences,
     addMessage,
     setLoading,
     clearMessages,

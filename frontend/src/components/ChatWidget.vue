@@ -52,6 +52,16 @@
         </button>
       </div>
 
+      <div class="preference-row">
+        <span class="preference-label" title="매 질문마다 반영되는 취향 힌트예요. 서버에 저장되지 않아요.">취향</span>
+        <input
+          v-model="chat.preferences"
+          class="preference-input"
+          type="text"
+          placeholder="예: 조용한 자연 위주, 매운 음식 좋아함 (선택)"
+        />
+      </div>
+
       <form class="input-area" @submit.prevent="handleSend">
         <div class="input-wrapper">
           <input
@@ -302,6 +312,35 @@ const handleQuickAction = (label) => {
 .quick-chip:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.preference-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid #f0eee9;
+}
+
+.preference-label {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: help;
+}
+
+.preference-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e8e5de;
+  background: #f4f2ee;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  outline: none;
 }
 
 .input-area {
