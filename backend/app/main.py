@@ -40,11 +40,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API 라우터 등록
-app.include_router(posts.router)
-app.include_router(comments.router)
-app.include_router(locations.router)
-app.include_router(chat.router)
+# API 라우터 등록 (기능명세서 §4.1 규격에 맞춰 모든 엔드포인트를 /api 하위로 통일)
+app.include_router(posts.router, prefix="/api")
+app.include_router(comments.router, prefix="/api")
+app.include_router(locations.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '@/utils/api'
+import api from '@/api'
 
 export const useMapStore = defineStore('map', () => {
   const locations = ref([])

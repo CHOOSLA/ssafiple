@@ -1,7 +1,15 @@
-from pydantic import BaseModel
+from typing import List, Literal
+from pydantic import BaseModel, Field
+
+class ChatMessage(BaseModel):
+    """대화 히스토리 1건. OpenAI Chat Completions 규격과 동일한 role/content 형태를 사용합니다."""
+    role: Literal["user", "assistant"]
+    content: str
 
 class ChatRequest(BaseModel):
-    message: str
+    # 빈 메시지는 422로 거절 (명세 FR-CHT-01 예외 처리)
+    message: str = Field(min_length=1, max_length=500)
+    history: List[ChatMessage] = []
 
 class ChatResponse(BaseModel):
     reply: str

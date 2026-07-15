@@ -178,14 +178,14 @@ const drawMarkers = (locations) => {
       if (hoverOverlay) hoverOverlay.setMap(null);
 
       // 이미지가 없으면 기본 회색 박스
-      const imageUrl = loc.firstimage || loc.firstimage2 || '';
+      const imageUrl = loc.image_url || '';
       const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">사진 없음</div>`;
 
       const content = `
         <div class="hover-pane">
           ${imageTag}
           <div class="hover-info">
-            <div class="hover-title">${loc.title}</div>
+            <div class="hover-title">${loc.name}</div>
             <div class="hover-category" style="color: ${color}">${loc.category}</div>
           </div>
         </div>

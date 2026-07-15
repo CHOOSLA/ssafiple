@@ -1,304 +1,326 @@
 <template>
-  <div class="chat-widget-wrapper">
-    <!-- 채팅 팝업 창 (열렸을 때) -->
-    <div v-if="isChatOpen" class="chat-popup">
+  <div>
+    <!-- 펼침: 대화창 -->
+    <div v-if="chat.isOpen" class="chat-panel anim-pop">
       <div class="chat-header">
-        <span class="chat-title">AI 여행 도우미</span>
-        <button class="close-btn" @click="toggleChat">✕</button>
-      </div>
-      
-      <div class="chat-body" ref="chatBody">
-        <!-- 메세지 리스트 -->
-        <div 
-          v-for="(msg, idx) in chatMessages" 
-          :key="idx" 
-          class="chat-bubble-wrapper"
-          :class="msg.role === 'user' ? 'is-user' : 'is-bot'"
-        >
-          <div class="chat-bubble">
-            {{ msg.text }}
-          </div>
-        </div>
-        
-        <div v-if="isTyping" class="chat-bubble-wrapper is-bot">
-          <div class="chat-bubble typing-indicator">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 빠른 질문 버튼들 -->
-      <div class="chat-quick-actions" v-if="chatMessages.length === 1">
-        <button class="quick-btn" @click="sendQuickMsg('가볼만한 곳 추천')">가볼만한 곳 추천</button>
-        <button class="quick-btn" @click="sendQuickMsg('한강 근처 맛집')">한강 근처 맛집</button>
+        <span class="chat-title">SSAFIPLE AI</span>
+        <button class="close-btn" type="button" aria-label="닫기" @click="chat.toggleOpen">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </button>
       </div>
 
-      <div class="chat-footer">
-        <input 
-          type="text" 
-          v-model="chatInput" 
-          @keyup.enter="sendChat" 
-          placeholder="챗봇에게 물어보세요..." 
-          class="chat-input"
-        />
-        <button class="send-btn" @click="sendChat" :disabled="!chatInput.trim()">전송</button>
+      <div ref="messageListEl" class="message-list">
+        <div
+          v-for="m in chat.messages"
+          :key="m.id"
+          class="message-row"
+          :class="m.sender"
+        >
+          <div class="bubble">{{ m.text }}</div>
+        </div>
+
+        <div v-if="chat.isLoading" class="message-row ai">
+          <div class="bubble anim-typing">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
       </div>
+
+      <div class="quick-actions">
+        <button
+          v-for="label in QUICK_ACTIONS"
+          :key="label"
+          type="button"
+          class="quick-chip"
+          :disabled="chat.isLoading"
+          @click="handleQuickAction(label)"
+        >
+          {{ label }}
+        </button>
+      </div>
+
+      <form class="input-area" @submit.prevent="handleSend">
+        <div class="input-wrapper">
+          <input
+            v-model="draft"
+            class="input-rounded"
+            type="text"
+            placeholder="메시지를 입력하세요"
+            :disabled="chat.isLoading"
+          />
+        </div>
+        <button class="send-btn" type="submit" aria-label="전송" :disabled="chat.isLoading || !draft.trim()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+            <polygon points="4,3 22,12 4,21 4,14 15,12 4,10" />
+          </svg>
+        </button>
+      </form>
     </div>
 
-    <!-- 플로팅 버튼 -->
-    <button class="floating-btn" @click="toggleChat" :class="{ 'is-open': isChatOpen }">
-      <span v-if="!isChatOpen" class="icon-chat">💬</span>
-      <span v-else class="icon-close">✕</span>
+    <!-- 접힘: 플로팅 버튼 -->
+    <button v-else class="fab" type="button" aria-label="챗봇 열기" @click="chat.toggleOpen">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 4h16v11H8l-4 4V4z"
+          stroke="#fff"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+        />
+      </svg>
     </button>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { nextTick, ref, watch } from 'vue'
+import { useChatStore } from '../stores/chat'
 
-const isChatOpen = ref(false)
-const chatInput = ref('')
-const isTyping = ref(false)
-const chatBody = ref(null)
+const QUICK_ACTIONS = ['가볼 만한 곳 추천', '한강 근처 맛집', '요즘 축제 있어?']
 
-const chatMessages = ref([
-  { role: 'bot', text: '안녕하세요! AI 여행 도우미입니다. 서울 지역에 대해 궁금한 점을 물어보세요.' }
-])
+const chat = useChatStore()
+const draft = ref('')
+const messageListEl = ref(null)
 
-const toggleChat = () => {
-  isChatOpen.value = !isChatOpen.value
-  if (isChatOpen.value) {
-    scrollToBottom()
-  }
+const scrollToBottom = () => {
+  nextTick(() => {
+    const el = messageListEl.value
+    if (el) el.scrollTop = el.scrollHeight
+  })
 }
 
-const scrollToBottom = async () => {
-  await nextTick()
-  if (chatBody.value) {
-    chatBody.value.scrollTop = chatBody.value.scrollHeight
-  }
+watch(() => chat.messages.length, scrollToBottom)
+watch(() => chat.isLoading, scrollToBottom)
+watch(() => chat.isOpen, (open) => {
+  if (open) scrollToBottom()
+})
+
+const handleSend = async () => {
+  const text = draft.value
+  draft.value = ''
+  await chat.sendMessage(text)
 }
 
-const sendQuickMsg = (msg) => {
-  chatInput.value = msg
-  sendChat()
-}
-
-const sendChat = () => {
-  const text = chatInput.value.trim()
-  if (!text || isTyping.value) return
-
-  // 사용자 메세지 추가
-  chatMessages.value.push({ role: 'user', text })
-  chatInput.value = ''
-  scrollToBottom()
-
-  // 챗봇 응답 대기 상태 (더미)
-  isTyping.value = true
-  
-  setTimeout(() => {
-    isTyping.value = false
-    chatMessages.value.push({ role: 'bot', text: 'API 연동 전 더미 응답입니다.' })
-    scrollToBottom()
-  }, 1000)
+const handleQuickAction = (label) => {
+  if (chat.isLoading) return
+  chat.sendMessage(label)
 }
 </script>
 
 <style scoped>
-.chat-widget-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.floating-btn {
+.fab {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--accent, #f15b4c);
-  color: white;
   border: none;
-  box-shadow: 0 4px 12px rgba(241, 91, 76, 0.4);
-  cursor: pointer;
+  background: var(--accent);
+  box-shadow: 0 4px 12px rgba(241, 91, 76, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  transition: all 0.2s ease;
-  z-index: 50;
+  cursor: pointer;
 }
 
-.floating-btn:hover {
-  transform: scale(1.05);
-  background: #d8402f;
-}
-
-.floating-btn.is-open {
-  background: #1c1b1a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.chat-popup {
-  position: absolute;
-  bottom: 76px;
-  right: 0;
+.chat-panel {
   width: 360px;
-  height: 500px;
+  height: 520px;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(28, 27, 26, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 45;
-  border: 1px solid #eceae6;
+}
+
+.anim-pop {
+  animation: lh-pop 0.5s ease both;
 }
 
 .chat-header {
-  padding: 16px 20px;
-  background: var(--accent, #f15b4c);
-  color: white;
+  flex: none;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-weight: 600;
-  font-size: 16px;
+  justify-content: space-between;
+}
+
+.chat-title {
+  font-weight: 800;
+  font-size: 15px;
 }
 
 .close-btn {
-  background: transparent;
+  width: 28px;
+  height: 28px;
   border: none;
-  color: white;
-  font-size: 18px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  padding: 0;
-  line-height: 1;
+  border-radius: 50%;
 }
 
-.chat-body {
+.close-btn:hover {
+  background: #f4f2ee;
+}
+
+.message-list {
   flex: 1;
-  padding: 16px;
+  min-height: 0;
   overflow-y: auto;
-  background: #f4f2ee; /* muted bg */
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.chat-bubble-wrapper {
+.message-row {
   display: flex;
-  width: 100%;
 }
 
-.chat-bubble-wrapper.is-user {
+.message-row.user {
   justify-content: flex-end;
 }
 
-.chat-bubble-wrapper.is-bot {
+.message-row.ai,
+.message-row.system {
   justify-content: flex-start;
 }
 
-.chat-bubble {
-  max-width: 75%;
+.bubble {
+  max-width: 78%;
   padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 14px;
-  line-height: 1.4;
+  border-radius: 14px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
-.is-user .chat-bubble {
-  background: var(--accent, #f15b4c);
-  color: white;
+.message-row.user .bubble {
+  background: var(--accent);
+  color: #fff;
   border-bottom-right-radius: 4px;
 }
 
-.is-bot .chat-bubble {
-  background: white;
-  color: #1c1b1a;
-  border: 1px solid #eceae6;
+.message-row.ai .bubble,
+.message-row.system .bubble {
+  background: #f4f2ee;
+  color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
 
-.chat-quick-actions {
+.anim-typing {
   display: flex;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #f4f2ee;
-  overflow-x: auto;
+  align-items: center;
+  gap: 4px;
+  padding: 14px;
 }
 
-.quick-btn {
+.anim-typing span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a8a49b;
+  animation: lh-blink 1.2s infinite;
+}
+
+.anim-typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.anim-typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.quick-actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 9px 12px;
+  overflow-x: auto;
+  border-top: 1px solid #f0eee9;
+}
+
+.quick-chip {
+  flex: none;
   white-space: nowrap;
-  background: white;
-  border: 1px solid var(--accent, #f15b4c);
-  color: var(--accent, #f15b4c);
-  border-radius: 20px;
+  background: #f4f2ee;
+  border: 1px solid #e8e5de;
+  border-radius: 16px;
   padding: 6px 12px;
   font-size: 12px;
+  color: #4a4843;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.quick-btn:hover {
-  background: var(--accent, #f15b4c);
-  color: white;
+.quick-chip:hover:not(:disabled) {
+  background: #eceae4;
 }
 
-.chat-footer {
-  display: flex;
+.quick-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.input-area {
+  flex: none;
   padding: 12px;
-  background: white;
-  border-top: 1px solid #eceae6;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.chat-input {
+.input-wrapper {
   flex: 1;
-  border: 1px solid #eceae6;
-  border-radius: 20px;
-  padding: 8px 16px;
-  outline: none;
-  font-size: 14px;
 }
 
-.chat-input:focus {
-  border-color: var(--accent, #f15b4c);
+.input-rounded {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e3e0d9;
+  border-radius: 22px;
+  padding: 12px 18px;
+  font-size: 14.5px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.input-rounded:disabled {
+  background: #f7f6f3;
+  color: var(--text-muted);
 }
 
 .send-btn {
-  background: var(--accent, #f15b4c);
-  color: white;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   border: none;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 
 .send-btn:disabled {
-  background: #d1cfc8;
+  background: var(--text-muted);
   cursor: not-allowed;
 }
 
-/* Typing indicator */
-.typing-indicator .dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: #a8a49b;
-  border-radius: 50%;
-  margin: 0 2px;
-  animation: typing 1.4s infinite ease-in-out both;
-}
-
-.typing-indicator .dot:nth-child(1) { animation-delay: -0.32s; }
-.typing-indicator .dot:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes typing {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+@media (max-width: 768px) {
+  .chat-panel {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
 }
 </style>
