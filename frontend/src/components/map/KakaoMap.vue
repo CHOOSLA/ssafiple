@@ -259,7 +259,8 @@ const renderMap = () => {
 const updateNameLabels = () => {
   if (!mapInstance.value) return
   const currentLevel = mapInstance.value.getLevel()
-  const showLabels = currentLevel <= 4 // 레벨 4 이하면 거리/동네 수준이므로 이름 표시
+  // 클러스터링이 3레벨부터 시작되므로(minLevel:3), 라벨은 그 전인 2레벨 이하일 때만 표시해야 허공에 안 뜸
+  const showLabels = currentLevel < 3 
   
   nameLabelOverlays.forEach(item => {
     // 현재 선택된 장소(selectedLocation)이거나 마우스 호버 중일 경우 라벨 숨김 보장
@@ -440,8 +441,8 @@ const drawMarkers = (locations) => {
         activeHoverOverlay.setMap(null);
         activeHoverOverlay = null;
       }
-      // 아웃 시 선택된 장소가 아니고, 줌 레벨이 4 이하면 라벨 복구
-      if (mapStore.selectedLocation?.id !== loc.id && mapInstance.value.getLevel() <= 4) {
+      // 아웃 시 선택된 장소가 아니고, 줌 레벨이 3 미만(1,2)이면 라벨 복구
+      if (mapStore.selectedLocation?.id !== loc.id && mapInstance.value.getLevel() < 3) {
         nameLabel.setMap(mapInstance.value);
       }
     });
