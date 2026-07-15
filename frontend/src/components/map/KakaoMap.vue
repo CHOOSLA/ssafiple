@@ -15,6 +15,7 @@ const clustererInstance = shallowRef(null)
 let markers = [] // 단순 배열로 관리
 let selectedOverlay = null // 선택된 장소 고정 오버레이
 let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
+let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
 
 onMounted(() => {
   initMap()
@@ -143,9 +144,14 @@ const drawMarkers = (locations) => {
   clustererInstance.value.clear()
   markers = []
   
-  // 기존 이름 라벨 모두 지도에서 제거 후 배열 초기화
+  // 데이터 갱신 시(이동/확대 등) 기존에 남아있는 오버레이들 완벽 클린업
   nameLabelOverlays.forEach(item => item.overlay.setMap(null))
   nameLabelOverlays = []
+  
+  if (activeHoverOverlay) {
+    activeHoverOverlay.setMap(null)
+    activeHoverOverlay = null
+  }
 
   locations.forEach(loc => {
     // 위도 경도 유효성 검사
@@ -213,10 +219,13 @@ const drawMarkers = (locations) => {
     nameLabelOverlays.push({ id: loc.id, overlay: nameLabel })
 
     // Hover (마우스 오버) 이벤트 바인딩: 커스텀 오버레이로 사진/설명 Pane 띄우기
-    let hoverOverlay = null;
     window.kakao.maps.event.addListener(marker, 'mouseover', () => {
-      if (hoverOverlay) hoverOverlay.setMap(null);
-      // 호버 시 지역명 라벨 숨김
+      // 기존에 떠 있던 다른 장소의 hover 오버레이 무조건 제거
+      if (activeHoverOverlay) {
+        activeHoverOverlay.setMap(null);
+      }
+      
+      // 호버 시 현재 지역명 라벨 숨김
       nameLabel.setMap(null);
 
       // 이미지가 없으면 기본 회색 박스
@@ -233,25 +242,26 @@ const drawMarkers = (locations) => {
         </div>
       `;
 
-      hoverOverlay = new window.kakao.maps.CustomOverlay({
+      activeHoverOverlay = new window.kakao.maps.CustomOverlay({
         content: content,
         position: position,
         yAnchor: 1.3, // 핀 바로 위에 적당히 뜨도록 위치 조정
         zIndex: 999
       });
       
-      hoverOverlay.setMap(mapInstance.value);
+      activeHoverOverlay.setMap(mapInstance.value);
+    });
 
-      // mouseout 이벤트에 삭제 로직 바인딩
-      window.kakao.maps.event.addListener(marker, 'mouseout', () => {
-        if (hoverOverlay) {
-          hoverOverlay.setMap(null);
-        }
-        // 아웃 시 선택된 장소가 아니고, 줌 레벨이 4 이하면 라벨 복구
-        if (mapStore.selectedLocation?.id !== loc.id && mapInstance.value.getLevel() <= 4) {
-          nameLabel.setMap(mapInstance.value);
-        }
-      });
+    // mouseout 이벤트에 삭제 로직 바인딩 (재선언 방지 위해 밖으로 분리)
+    window.kakao.maps.event.addListener(marker, 'mouseout', () => {
+      if (activeHoverOverlay) {
+        activeHoverOverlay.setMap(null);
+        activeHoverOverlay = null;
+      }
+      // 아웃 시 선택된 장소가 아니고, 줌 레벨이 4 이하면 라벨 복구
+      if (mapStore.selectedLocation?.id !== loc.id && mapInstance.value.getLevel() <= 4) {
+        nameLabel.setMap(mapInstance.value);
+      }
     });
 
     // 개별적으로 setMap() 하지 않고 배열에만 모음
@@ -280,8 +290,8 @@ watch(() => mapStore.selectedLocation, (loc) => {
   if (loc && loc.latitude && loc.longitude && mapInstance.value) {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
-    // 선택된 장소로 지도 레벨 살짝 확대 (Zoom In)
-    mapInstance.value.setLevel(4, { animate: true })
+    // 선택된 장소로 지도 레벨 살짝 확대 (애니메이션을 끄면 오버레이 좌표 어긋남 버그 방지)
+    mapInstance.value.setLevel(4)
     
     const panel = document.querySelector('.left-panel')
     const panelWidth = panel ? panel.offsetWidth : 550
