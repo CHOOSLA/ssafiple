@@ -14,6 +14,7 @@ const mapInstance = shallowRef(null)
 const clustererInstance = shallowRef(null)
 let markers = [] // 단순 배열로 관리
 let selectedOverlay = null // 선택된 장소 고정 오버레이
+let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 
 onMounted(() => {
   initMap()
@@ -104,6 +105,26 @@ const renderMap = () => {
       ne_lng: ne.getLng()
     })
   })
+
+  // 줌 레벨이 변경될 때(확대/축소) 장소 이름 라벨 표시 여부 업데이트
+  window.kakao.maps.event.addListener(mapInstance.value, 'zoom_changed', () => {
+    updateNameLabels()
+  })
+}
+
+// 줌 레벨(거리에 따라) 마커 이름 표시 여부 결정
+const updateNameLabels = () => {
+  if (!mapInstance.value) return
+  const currentLevel = mapInstance.value.getLevel()
+  const showLabels = currentLevel <= 4 // 레벨 4 이하면 거리/동네 수준이므로 이름 표시
+  
+  nameLabelOverlays.forEach(overlay => {
+    if (showLabels) {
+      overlay.setMap(mapInstance.value)
+    } else {
+      overlay.setMap(null)
+    }
+  })
 }
 
 // 카테고리별 컬러 매핑 (디자인 명세서 참조)
@@ -121,6 +142,10 @@ const drawMarkers = (locations) => {
   // 기존 클러스터러 및 마커 배열 초기화
   clustererInstance.value.clear()
   markers = []
+  
+  // 기존 이름 라벨 모두 지도에서 제거 후 배열 초기화
+  nameLabelOverlays.forEach(overlay => overlay.setMap(null))
+  nameLabelOverlays = []
 
   locations.forEach(loc => {
     // 위도 경도 유효성 검사
@@ -214,12 +239,24 @@ const drawMarkers = (locations) => {
       });
     });
 
+    // 지도 확대 시 보일 장소 이름 텍스트 라벨 생성
+    const nameLabel = new window.kakao.maps.CustomOverlay({
+      content: `<div class="marker-name-label">${loc.name}</div>`,
+      position: position,
+      yAnchor: 2.8, // 핀보다 위에 위치
+      zIndex: 900
+    });
+    nameLabelOverlays.push(nameLabel)
+
     // 개별적으로 setMap() 하지 않고 배열에만 모음
     markers.push(marker)
   })
 
   // 클러스터러에 마커들을 한 번에 추가
   clustererInstance.value.addMarkers(markers)
+  
+  // 방금 만든 라벨들에 대해 현재 줌 레벨 기준으로 표시 여부 초기 판별
+  updateNameLabels()
 }
 
 // 스토어의 데이터 변경 감지 (검색, 필터링 등)
@@ -332,5 +369,18 @@ watch(() => mapStore.selectedLocation, (loc) => {
 :deep(.hover-category) {
   font-size: 12px;
   font-weight: 600;
+}
+
+:deep(.marker-name-label) {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1c1b1a;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.16);
+  border: 1px solid #eceae6;
+  white-space: nowrap;
+  pointer-events: none; /* 클릭 방해 금지 */
 }
 </style>
