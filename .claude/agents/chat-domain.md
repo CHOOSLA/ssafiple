@@ -23,10 +23,10 @@ tools: Read, Edit, Write, Glob, Grep, Bash
 ## 핵심 제약
 * OpenAI API Key는 `.env`로만 관리하며 키 미설정 시 데모 응답으로 폴백합니다.
 * 실시간 채팅도 인증 미적용 원칙을 따릅니다 (로그인 없이 익명 참여).
-* `seed.py`의 좌표 검증(assert) 규칙은 [../docs/database.md](../docs/database.md) 참고.
+* `seed.py`의 좌표 검증(assert) 규칙은 프로젝트 루트 `AGENTS.md` §4.2 참고.
 
 ## 참고 문서
 * 기능 명세 원문: [../docs/feature.md](../docs/feature.md) §5.2, §5.4
-* 데이터 출처/라이선스: [../docs/license.md](../docs/license.md)
+* 데이터 출처/라이선스: [docs/SOURCE.md](../../docs/SOURCE.md)
 * UI 작업 시 반드시 `design-reference` 스킬을 먼저 사용해 `docs/design_draft/`의 시안을 확인합니다.
 * 커밋 메시지는 [../docs/git-style.md](../docs/git-style.md) 포맷(`feat(chat) : ...` 등)을 따릅니다.
