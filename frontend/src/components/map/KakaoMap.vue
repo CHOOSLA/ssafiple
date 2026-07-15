@@ -198,28 +198,16 @@ const renderMap = () => {
   
   // 클러스터 클릭 시 시각적 중앙(왼쪽 패널 고려)으로 줌 인 하는 커스텀 로직
   window.kakao.maps.event.addListener(clustererInstance.value, 'clusterclick', (cluster) => {
-    const center = cluster.getCenter()
+    const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
+    const panelWidth = panel ? panel.offsetWidth : 550
     
-    // 1. 클릭한 클러스터의 실제 좌표를 줌 기준점(anchor)으로 삼아, 
-    //    지도가 엉뚱한 화면 정가운데가 아닌 "내가 클릭한 숫자"를 향해 부드럽게 확대되도록 설정
-    const level = mapInstance.value.getLevel() - 1
-    mapInstance.value.setLevel(level, { animate: true, anchor: center })
+    // 클러스터에 포함된 마커들의 영역(바운더리)을 구합니다.
+    const bounds = cluster.getBounds()
     
-    // 2. 확대 애니메이션이 거의 끝나갈 때쯤(약 250ms 뒤), 
-    //    그 녀석을 왼쪽 패널을 피해서 시각적 빈 공간 정중앙으로 스르륵 끌어옵니다.
-    setTimeout(() => {
-      const proj = mapInstance.value.getProjection()
-      const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
-      const panelWidth = panel ? panel.offsetWidth : 550
-      
-      if (proj) {
-        let point = proj.pointFromCoords(center)
-        point.x = point.x - (panelWidth / 2)
-        mapInstance.value.panTo(proj.coordsFromPoint(point))
-      } else {
-        mapInstance.value.panTo(center)
-      }
-    }, 250)
+    // 카카오맵의 setBounds는 인자로 padding(상, 우, 하, 좌)을 받습니다.
+    // 왼쪽 패널 너비만큼 좌측 패딩을 주고, 나머지 면에도 넉넉한 여백(100px)을 주어 
+    // 마커들이 패널을 피해 오른쪽 빈 공간의 딱 정가운데에 알맞은 크기로 꽉 차게 렌더링되게 만듭니다.
+    mapInstance.value.setBounds(bounds, 100, 100, 100, panelWidth + 100)
   })
   
   // 줌 컨트롤 추가 (우측 상단으로 이동 - AI 챗봇 버튼과 겹침 방지)
