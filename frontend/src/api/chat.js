@@ -1,9 +1,10 @@
 import api from './index'
 
 // history: [{ role: 'user' | 'assistant', content: string }]
+// 반환값: { reply: string, locations: LocationBrief[] } — locations는 LLM이 답변에서 실제 언급한 장소
 export const postChat = async (message, history) => {
   const { data } = await api.post('/chat', { message, history })
-  return data.reply
+  return { reply: data.reply, locations: data.locations || [] }
 }
 
 // 장소별 실시간 채팅(§5.4) 최근 이력 조회

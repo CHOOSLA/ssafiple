@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { postChat } from '../api/chat'
+import { useMapStore } from './mapStore'
 
 const INITIAL_MESSAGE = {
   id: 1,
@@ -16,12 +17,21 @@ export const useChatStore = defineStore('chat', () => {
   const isLoading = ref(false)
   const isOpen = ref(false)
 
-  const addMessage = (sender, text) => {
+  const addMessage = (sender, text, locations = []) => {
     messages.value.push({
       id: Date.now(),
       sender,
-      text
+      text,
+      locations
     })
+  }
+
+  // 챗봇이 추천한 장소 중 첫 번째로 지도를 이동시키고, 검색창도 같은 키워드로 채워 목록을 필터링
+  const focusOnLocation = (loc) => {
+    const mapStore = useMapStore()
+    mapStore.selectLocation(loc)
+    mapStore.setSearchQuery(loc.name)
+    mapStore.fetchLocations(null, loc.name)
   }
 
   const setLoading = (loading) => {
@@ -49,8 +59,11 @@ export const useChatStore = defineStore('chat', () => {
     addMessage('user', trimmed)
     setLoading(true)
     try {
-      const reply = await postChat(trimmed, history)
-      addMessage('ai', reply)
+      const { reply, locations } = await postChat(trimmed, history)
+      addMessage('ai', reply, locations)
+      if (locations.length > 0) {
+        focusOnLocation(locations[0])
+      }
     } catch (err) {
       addMessage('system', '죄송합니다, 답변을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.')
     } finally {
@@ -66,6 +79,7 @@ export const useChatStore = defineStore('chat', () => {
     setLoading,
     clearMessages,
     toggleOpen,
-    sendMessage
+    sendMessage,
+    focusOnLocation
   }
 })

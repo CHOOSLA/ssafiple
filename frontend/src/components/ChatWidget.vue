@@ -19,6 +19,17 @@
           :class="m.sender"
         >
           <div class="bubble">{{ m.text }}</div>
+          <div v-if="m.locations && m.locations.length" class="place-chips">
+            <button
+              v-for="loc in m.locations"
+              :key="loc.id"
+              type="button"
+              class="place-chip"
+              @click="chat.focusOnLocation(loc)"
+            >
+              📍 {{ loc.name }}
+            </button>
+          </div>
         </div>
 
         <div v-if="chat.isLoading" class="message-row ai">
@@ -180,15 +191,16 @@ const handleQuickAction = (label) => {
 
 .message-row {
   display: flex;
+  flex-direction: column;
 }
 
 .message-row.user {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .message-row.ai,
 .message-row.system {
-  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .bubble {
@@ -212,6 +224,31 @@ const handleQuickAction = (label) => {
   background: #f4f2ee;
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
+}
+
+.place-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  max-width: 78%;
+}
+
+.place-chip {
+  white-space: nowrap;
+  background: #fff;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 16px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.place-chip:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 .anim-typing {
