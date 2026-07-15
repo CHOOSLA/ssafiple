@@ -225,6 +225,24 @@ const drawMarkers = (locations) => {
 watch(() => mapStore.locations, (newLocations) => {
   drawMarkers(newLocations)
 }, { deep: true })
+
+// 왼쪽 목록 등에서 장소 선택 시 지도 중심 부드럽게 이동
+watch(() => mapStore.selectedLocation, (loc) => {
+  if (loc && loc.latitude && loc.longitude && mapInstance.value) {
+    const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
+    const panel = document.querySelector('.left-panel')
+    const panelWidth = panel ? panel.offsetWidth : 550
+    
+    const proj = mapInstance.value.getProjection()
+    if (proj) {
+      let point = proj.pointFromCoords(position)
+      point.x = point.x - (panelWidth / 2)
+      mapInstance.value.panTo(proj.coordsFromPoint(point))
+    } else {
+      mapInstance.value.panTo(position)
+    }
+  }
+})
 </script>
 
 <style scoped>
