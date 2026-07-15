@@ -12,10 +12,10 @@
       </div>
       <div class="search-row">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2"/><line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round"/></svg>
-        <input 
-          class="search-input" 
-          placeholder="장소, 주소 검색" 
-          v-model="searchQuery"
+        <input
+          class="search-input"
+          placeholder="장소, 주소 검색"
+          v-model="mapStore.searchQuery"
           @keyup.enter="handleSearch"
         />
       </div>
@@ -83,7 +83,6 @@ import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
 const router = useRouter()
-const searchQuery = ref('')
 
 const catColors = {
   '관광지': '#f15b4c',
@@ -110,7 +109,7 @@ const emptyPreviewText = (loc) => {
 }
 
 const handleSearch = () => {
-  mapStore.fetchLocations(null, searchQuery.value)
+  mapStore.fetchLocations(null, mapStore.searchQuery)
 }
 
 const goToPosts = (loc) => {

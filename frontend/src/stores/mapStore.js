@@ -16,6 +16,13 @@ export const useMapStore = defineStore('map', () => {
   // 현재 검색/필터 상태 캐시
   const currentQuery = ref({ category: null, q: null, bbox: null })
 
+  // 검색창(PlaceListPanel) 입력값 — 챗봇 등 외부에서 검색어를 주입할 수 있도록 store로 관리
+  const searchQuery = ref('')
+
+  const setSearchQuery = (query) => {
+    searchQuery.value = query
+  }
+
   const fetchLocations = async (category = null, q = null, bbox = null) => {
     isLoading.value = true
     skip.value = 0
@@ -81,8 +88,10 @@ export const useMapStore = defineStore('map', () => {
     isFetchingMore,
     hasMore,
     selectedLocation,
+    searchQuery,
     fetchLocations,
     fetchMoreLocations,
-    selectLocation
+    selectLocation,
+    setSearchQuery
   }
 })
