@@ -35,7 +35,7 @@
           v-for="loc in mapStore.locations" 
           :key="loc.id" 
           class="place-card"
-          @click="mapStore.selectLocation(loc)"
+          @click="goToPosts(loc)"
         >
           <!-- 왼쪽 썸네일 공간 -->
           <span 
@@ -50,12 +50,19 @@
           <span class="place-info">
             <span class="p-name">{{ loc.name }}</span>
             <span class="p-addr">{{ loc.address }}</span>
-            <span class="p-posts">게시글 조회 필요</span>
+            <span class="p-posts">게시글 {{ loc.post_count || 0 }}개</span>
           </span>
 
-          <!-- 오른쪽 게시글 미리보기 (공간만 차지) -->
+          <!-- 오른쪽 게시글 미리보기 (항상 2슬롯 고정) -->
           <span class="post-preview-area">
-            <span class="empty-preview">게시글 연동 전입니다</span>
+            <template v-for="(pv, idx) in previewSlots(loc)" :key="pv ? pv.id : `empty-${idx}`">
+              <span v-if="pv" class="preview-card">
+                <span class="pv-title">{{ pv.title }}</span>
+                <span class="pv-snippet">{{ pv.snippet }}</span>
+                <span class="pv-comments">댓글 {{ pv.comment_count }}개</span>
+              </span>
+              <span v-else class="empty-preview">{{ emptyPreviewText(loc) }}</span>
+            </template>
           </span>
         </button>
         
@@ -71,9 +78,11 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
+const router = useRouter()
 const searchQuery = ref('')
 
 const catColors = {
@@ -88,8 +97,25 @@ const getCatColor = (cat) => {
   return catColors[cat] || '#f15b4c'
 }
 
+// 게시글 미리보기를 항상 2슬롯으로 고정 (실제 글 또는 null)
+const previewSlots = (loc) => {
+  const posts = loc.latest_posts || []
+  return [0, 1].map((i) => posts[i] || null)
+}
+
+// 빈 슬롯에 표시할 안내 문구 (전체 무글 vs 한 개만 있는 경우 구분)
+const emptyPreviewText = (loc) => {
+  const count = (loc.latest_posts || []).length
+  return count === 0 ? '첫 글을 남겨주세요' : '글을 더 남겨주세요'
+}
+
 const handleSearch = () => {
   mapStore.fetchLocations(null, searchQuery.value)
+}
+
+const goToPosts = (loc) => {
+  mapStore.selectLocation(loc)
+  router.push(`/locations/${loc.id}/posts`)
 }
 
 const observerTarget = ref(null)
@@ -321,6 +347,48 @@ onUnmounted(() => {
   color: #c2bfb7;
   text-align: center;
   padding: 0 10px;
+}
+
+/* 게시글 미리보기 카드 */
+.preview-card {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 132px;
+  border: 1px solid #eceae6;
+  border-radius: 12px;
+  padding: 12px 13px;
+  display: flex;
+  flex-direction: column;
+  background: #fcfbf9;
+  overflow: hidden;
+}
+
+.pv-title {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #1c1b1a;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pv-snippet {
+  font-size: 12px;
+  color: #8a877f;
+  margin-top: 7px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pv-comments {
+  font-size: 11px;
+  color: #b0ada5;
+  margin-top: auto;
 }
 
 .loading, .empty {

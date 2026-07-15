@@ -13,6 +13,50 @@ const router = useRouter()
 const mapInstance = shallowRef(null)
 const clustererInstance = shallowRef(null)
 let markers = [] // 단순 배열로 관리
+let selectedOverlay = null // 선택된 장소 고정 오버레이
+let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
+let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
+let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
+
+// 부드러운 마커(와 이름 라벨) 이동을 위한 애니메이션 함수
+const animateMarkerTo = (marker, startPos, endPos, duration = 250) => {
+  if (!mapInstance.value) return
+  const proj = mapInstance.value.getProjection()
+  if (!proj) return
+  
+  const startPoint = proj.pointFromCoords(startPos)
+  const endPoint = proj.pointFromCoords(endPos)
+  const startTime = performance.now()
+  
+  const step = (currentTime) => {
+    let progress = (currentTime - startTime) / duration
+    if (progress > 1) progress = 1
+    
+    // easeOutQuad (부드럽게 감속)
+    const easing = 1 - (1 - progress) * (1 - progress)
+    const currentX = startPoint.x + (endPoint.x - startPoint.x) * easing
+    const currentY = startPoint.y + (endPoint.y - startPoint.y) * easing
+    
+    const currentLatLng = proj.coordsFromPoint(new window.kakao.maps.Point(currentX, currentY))
+    marker.setPosition(currentLatLng)
+    if (marker.nameLabelRef) {
+      marker.nameLabelRef.setPosition(currentLatLng)
+    }
+    
+    if (progress < 1) {
+      requestAnimationFrame(step)
+    }
+  }
+  requestAnimationFrame(step)
+}
+
+const resetSpiderfiedMarkers = () => {
+  spiderfiedMarkers.forEach(m => {
+    animateMarkerTo(m, m.getPosition(), m.originalPosition, 200)
+    m.isSpiderfied = false
+  })
+  spiderfiedMarkers = []
+}
 
 onMounted(() => {
   initMap()
@@ -103,6 +147,32 @@ const renderMap = () => {
       ne_lng: ne.getLng()
     })
   })
+
+  // 지도 빈 공간 클릭 시 펼쳐진 마커들 원상복구
+  window.kakao.maps.event.addListener(mapInstance.value, 'click', () => {
+    resetSpiderfiedMarkers()
+  })
+
+  // 줌 레벨이 변경될 때(확대/축소) 장소 이름 라벨 표시 여부 업데이트
+  window.kakao.maps.event.addListener(mapInstance.value, 'zoom_changed', () => {
+    resetSpiderfiedMarkers() // 줌 변경 시에도 원상복구
+    updateNameLabels()
+  })
+}
+
+const updateNameLabels = () => {
+  if (!mapInstance.value) return
+  const currentLevel = mapInstance.value.getLevel()
+  const showLabels = currentLevel <= 4 // 레벨 4 이하면 거리/동네 수준이므로 이름 표시
+  
+  nameLabelOverlays.forEach(item => {
+    // 현재 선택된 장소(selectedLocation)이거나 마우스 호버 중일 경우 라벨 숨김 보장
+    if (showLabels && mapStore.selectedLocation?.id !== item.id) {
+      item.overlay.setMap(mapInstance.value)
+    } else {
+      item.overlay.setMap(null)
+    }
+  })
 }
 
 // 카테고리별 컬러 매핑 (디자인 명세서 참조)
@@ -120,6 +190,17 @@ const drawMarkers = (locations) => {
   // 기존 클러스터러 및 마커 배열 초기화
   clustererInstance.value.clear()
   markers = []
+  
+  // 데이터 갱신 시(이동/확대 등) 기존에 남아있는 오버레이들 완벽 클린업
+  nameLabelOverlays.forEach(item => item.overlay.setMap(null))
+  nameLabelOverlays = []
+  
+  if (activeHoverOverlay) {
+    activeHoverOverlay.setMap(null)
+    activeHoverOverlay = null
+  }
+  
+  resetSpiderfiedMarkers()
 
   locations.forEach(loc => {
     // 위도 경도 유효성 검사
@@ -132,7 +213,7 @@ const drawMarkers = (locations) => {
     // SVG 이미지를 Data URI로 변환하여 정식 Marker와 MarkerImage를 사용합니다.
     const svgString = `
       <svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">
-        <path d="M17 0C7.6 0 0 7.6 0 17c0 12.8 17 25 17 25s17-12.2 17-25C34 7.6 26.4 0 17 0z" fill="${color}" stroke="#ffffff" stroke-width="2.5" filter="drop-shadow(0px 4px 4px rgba(0,0,0,0.3))"/>
+        <path d="M17 0C7.6 0 0 7.6 0 17c0 12.8 17 25 17 25s17-12.2 17-25C34 7.6 26.4 0 17 0z" fill="${color}" stroke="#ffffff" stroke-width="2.5"/>
         <circle cx="17" cy="17" r="5" fill="#ffffff"/>
       </svg>
     `.trim()
@@ -149,38 +230,81 @@ const drawMarkers = (locations) => {
       position,
       image: markerImage
     })
+    marker.originalPosition = position
+    marker.locData = loc
 
-    // 마커 클릭 이벤트 바인딩 (카카오맵 정식 이벤트)
+    // 마커 클릭 이벤트 바인딩 (Spiderfier 로직 적용)
     window.kakao.maps.event.addListener(marker, 'click', () => {
-      mapStore.selectLocation(loc)
-      
-      // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 이동 알고리즘
-      const panel = document.querySelector('.left-panel')
-      const panelWidth = panel ? panel.offsetWidth : 550 // 기본값
-      
       const proj = mapInstance.value.getProjection()
-      // 1. 마커의 지리 좌표를 화면 픽셀 좌표(Point)로 변환
-      let point = proj.pointFromCoords(position)
+      if (!proj) return
       
-      // 2. 패널에 가려지지 않는 영역의 정중앙에 마커가 오려면, 
-      // 마커를 화면 중심보다 (패널너비 / 2) 만큼 오른쪽(시각적 중심)에 두어야 함.
-      // 따라서 지도의 중심 좌표는 마커 위치보다 (패널너비 / 2) 만큼 왼쪽(-x)으로 이동해야 합니다.
-      point.x = point.x - (panelWidth / 2)
+      const clickedPoint = proj.pointFromCoords(marker.originalPosition)
       
-      // 3. 계산된 픽셀 좌표를 다시 지리 좌표(LatLng)로 변환
-      const offsetLatLng = proj.coordsFromPoint(point)
-      
-      // 4. 오프셋이 적용된 새로운 중심으로 부드럽게 이동
-      mapInstance.value.panTo(offsetLatLng)
-      
-      // 장소 선택 후 게시판 화면으로 이동
-      router.push(`/locations/${loc.id}/posts`)
+      // 픽셀 거리 30 이내로 겹치는 마커 찾기
+      const overlappingMarkers = markers.filter(m => {
+        const p = proj.pointFromCoords(m.originalPosition)
+        const dx = p.x - clickedPoint.x
+        const dy = p.y - clickedPoint.y
+        return Math.sqrt(dx*dx + dy*dy) < 30
+      })
+
+      // 이미 펼쳐진 상태이거나, 겹치는 마커가 자신뿐이라면 -> 찐 클릭(게시판 이동)
+      if (marker.isSpiderfied || overlappingMarkers.length <= 1) {
+        resetSpiderfiedMarkers()
+        
+        mapStore.selectLocation(loc)
+        
+        // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 이동 알고리즘
+        const panel = document.querySelector('.left-panel')
+        const panelWidth = panel ? panel.offsetWidth : 550
+        
+        let point = proj.pointFromCoords(marker.originalPosition)
+        point.x = point.x - (panelWidth / 2)
+        const offsetLatLng = proj.coordsFromPoint(point)
+        
+        mapInstance.value.panTo(offsetLatLng)
+        router.push(`/locations/${loc.id}/posts`)
+      } else {
+        // 겹쳐진 핀이 여러 개라면 방사형(거미줄)으로 촤라락 펼치기
+        resetSpiderfiedMarkers()
+        
+        const angleStep = (Math.PI * 2) / overlappingMarkers.length
+        const radius = 45 // 45픽셀 밖으로 원형 배치
+        
+        overlappingMarkers.forEach((m, idx) => {
+          const angle = idx * angleStep
+          const nx = clickedPoint.x + Math.cos(angle) * radius
+          const ny = clickedPoint.y + Math.sin(angle) * radius
+          const newPos = proj.coordsFromPoint(new window.kakao.maps.Point(nx, ny))
+          
+          animateMarkerTo(m, m.originalPosition, newPos, 300)
+          m.isSpiderfied = true
+          spiderfiedMarkers.push(m)
+        })
+      }
     })
 
+    // 지도 확대 시 보일 장소 이름 텍스트 라벨 생성
+    const nameLabel = new window.kakao.maps.CustomOverlay({
+      content: `<div class="marker-name-label">${loc.name}</div>`,
+      position: position,
+      yAnchor: 2.8, // 핀보다 위에 위치
+      zIndex: 900
+    });
+    nameLabelOverlays.push({ id: loc.id, overlay: nameLabel })
+    
+    // 애니메이션 헬퍼에서 접근 가능하도록 참조 저장
+    marker.nameLabelRef = nameLabel
+
     // Hover (마우스 오버) 이벤트 바인딩: 커스텀 오버레이로 사진/설명 Pane 띄우기
-    let hoverOverlay = null;
     window.kakao.maps.event.addListener(marker, 'mouseover', () => {
-      if (hoverOverlay) hoverOverlay.setMap(null);
+      // 기존에 떠 있던 다른 장소의 hover 오버레이 무조건 제거
+      if (activeHoverOverlay) {
+        activeHoverOverlay.setMap(null);
+      }
+      
+      // 호버 시 현재 지역명 라벨 숨김
+      nameLabel.setMap(null);
 
       // 이미지가 없으면 기본 회색 박스
       const imageUrl = loc.image_url || '';
@@ -196,21 +320,26 @@ const drawMarkers = (locations) => {
         </div>
       `;
 
-      hoverOverlay = new window.kakao.maps.CustomOverlay({
+      activeHoverOverlay = new window.kakao.maps.CustomOverlay({
         content: content,
-        position: position,
-        yAnchor: 1.5, // 핀 바로 위에 뜨도록 위치 조정
-        zIndex: 999
+        position: marker.getPosition(), // 애니메이션 이동 상태 고려해 marker의 현재 좌표
+        yAnchor: 1.3, // 핀 바로 위에 적당히 뜨도록 위치 조정
+        zIndex: 1100 // 선택된 오버레이(1000)보다 높게 설정하여 안 가려지도록 함
       });
       
-      hoverOverlay.setMap(mapInstance.value);
+      activeHoverOverlay.setMap(mapInstance.value);
+    });
 
-      // mouseout 이벤트에 삭제 로직 바인딩
-      window.kakao.maps.event.addListener(marker, 'mouseout', () => {
-        if (hoverOverlay) {
-          hoverOverlay.setMap(null);
-        }
-      });
+    // mouseout 이벤트에 삭제 로직 바인딩 (재선언 방지 위해 밖으로 분리)
+    window.kakao.maps.event.addListener(marker, 'mouseout', () => {
+      if (activeHoverOverlay) {
+        activeHoverOverlay.setMap(null);
+        activeHoverOverlay = null;
+      }
+      // 아웃 시 선택된 장소가 아니고, 줌 레벨이 4 이하면 라벨 복구
+      if (mapStore.selectedLocation?.id !== loc.id && mapInstance.value.getLevel() <= 4) {
+        nameLabel.setMap(mapInstance.value);
+      }
     });
 
     // 개별적으로 setMap() 하지 않고 배열에만 모음
@@ -219,12 +348,68 @@ const drawMarkers = (locations) => {
 
   // 클러스터러에 마커들을 한 번에 추가
   clustererInstance.value.addMarkers(markers)
+  
+  // 방금 만든 라벨들에 대해 현재 줌 레벨 기준으로 표시 여부 초기 판별
+  updateNameLabels()
 }
 
 // 스토어의 데이터 변경 감지 (검색, 필터링 등)
 watch(() => mapStore.locations, (newLocations) => {
   drawMarkers(newLocations)
 }, { deep: true })
+
+// 왼쪽 목록 등에서 장소 선택 시 지도 중심 부드럽게 이동 및 오버레이 띄우기
+watch(() => mapStore.selectedLocation, (loc) => {
+  if (selectedOverlay) {
+    selectedOverlay.setMap(null)
+    selectedOverlay = null
+  }
+  
+  if (loc && loc.latitude && loc.longitude && mapInstance.value) {
+    const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
+    
+    // 선택된 장소로 지도 레벨 살짝 확대 (애니메이션을 끄면 오버레이 좌표 어긋남 버그 방지)
+    mapInstance.value.setLevel(4)
+    
+    const panel = document.querySelector('.left-panel')
+    const panelWidth = panel ? panel.offsetWidth : 550
+    
+    const proj = mapInstance.value.getProjection()
+    if (proj) {
+      let point = proj.pointFromCoords(position)
+      point.x = point.x - (panelWidth / 2)
+      mapInstance.value.panTo(proj.coordsFromPoint(point))
+    } else {
+      mapInstance.value.panTo(position)
+    }
+    
+    // 오버레이 생성 및 표시
+    const color = catColors[loc.category] || '#f15b4c'
+    const imageUrl = loc.image_url || ''
+    const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">사진 없음</div>`
+    const content = `
+      <div class="hover-pane">
+        ${imageTag}
+        <div class="hover-info">
+          <div class="hover-title">${loc.name}</div>
+          <div class="hover-category" style="color: ${color}">${loc.category}</div>
+        </div>
+      </div>
+    `
+    selectedOverlay = new window.kakao.maps.CustomOverlay({
+      content: content,
+      position: position,
+      yAnchor: 1.3, // 핀과 적당한 간격
+      zIndex: 1000
+    })
+    selectedOverlay.setMap(mapInstance.value)
+    
+    // 선택된 마커의 텍스트 라벨 숨기기 및 이전 선택 라벨 복구 (updateNameLabels 재호출)
+    updateNameLabels()
+  } else {
+    updateNameLabels()
+  }
+})
 </script>
 
 <style scoped>
@@ -283,5 +468,18 @@ watch(() => mapStore.locations, (newLocations) => {
 :deep(.hover-category) {
   font-size: 12px;
   font-weight: 600;
+}
+
+:deep(.marker-name-label) {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px 9px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1c1b1a;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.16);
+  border: 1px solid #eceae6;
+  white-space: nowrap;
+  pointer-events: none; /* 클릭 방해 금지 */
 }
 </style>

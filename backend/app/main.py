@@ -5,7 +5,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.database import engine, Base
-from app.models import Location, Post, Comment
+from app.models import Location, Post, Comment, ChatMessage
 from app.routers import posts, comments, locations, chat
 import sys, os
 
