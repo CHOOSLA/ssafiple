@@ -3,13 +3,13 @@
     
     <!-- 로고 및 검색 헤더 영역 (LocalHub 디자인 참조) -->
     <div class="header-section">
-      <div class="brand-row">
+      <button type="button" class="brand-row brand-row-link" @click="goHome">
         <img class="brand-logo" src="/favicon.svg" alt="SSAFIPLE 로고" />
         <div class="brand-text">
           <div class="brand-title">SSAFIPLE</div>
           <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
         </div>
-      </div>
+      </button>
       <div class="search-row">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2"/><line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round"/></svg>
         <input
@@ -136,6 +136,10 @@ const goToPosts = (loc) => {
   router.push(`/locations/${loc.id}/posts`)
 }
 
+const goHome = () => {
+  router.push('/')
+}
+
 const observerTarget = ref(null)
 let observer = null
 
@@ -183,6 +187,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 9px;
+}
+
+.brand-row-link {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 .brand-logo {
