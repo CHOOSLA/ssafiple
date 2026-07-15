@@ -33,7 +33,10 @@ def load_json_files(raw_dir):
                         # JSON 키 매핑은 데이터 포맷에 맞게 조정이 필요합니다.
                         # 명세서 2.1에 따른 mapx(경도), mapy(위도) 키 획득
                         name = item.get("name") or item.get("title") or item.get("명칭")
-                        address = item.get("address") or item.get("addr") or item.get("주소")
+                        # 공공데이터(TourAPI) 표준 키인 addr1(+addr2 상세주소)도 인식
+                        addr1 = item.get("address") or item.get("addr") or item.get("주소") or item.get("addr1")
+                        addr2 = item.get("addr2")
+                        address = f"{addr1} {addr2}".strip() if (addr1 and addr2) else addr1
                         category = item.get("category") or item.get("종류") or category_fallback
                         description = item.get("description") or item.get("content") or item.get("개요")
                         
