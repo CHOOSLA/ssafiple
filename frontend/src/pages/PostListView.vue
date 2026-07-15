@@ -20,13 +20,14 @@
 
       <div class="place-hero">
         <button type="button" class="hero-back" @click="goBack">‹</button>
-        <span class="hero-placeholder">PHOTO · {{ placeName }}</span>
+        <img v-if="placeImageUrl" :src="placeImageUrl" class="hero-photo" alt="" />
+        <span v-else class="hero-placeholder">PHOTO · {{ placeName }}</span>
       </div>
 
       <div class="place-info-bar">
         <div class="place-name-row">
           <span class="place-name">{{ placeName }}</span>
-          <span class="place-cat">{{ placeCategory }}</span>
+          <span class="place-cat" :style="{ color: placeCategoryColor }">{{ placeCategory }}</span>
         </div>
         <div class="place-address">{{ placeAddress }}</div>
       </div>
@@ -94,10 +95,41 @@ const error = ref('')
 const searchQuery = ref('')
 const activeTab = ref('posts')
 
-// 스토어에서 선택된 장소 정보를 가져와 화면에 표시
-const placeName = computed(() => mapStore.selectedLocation?.name || '전체 장소')
-const placeCategory = computed(() => mapStore.selectedLocation?.category || '')
-const placeAddress = computed(() => mapStore.selectedLocation?.address || '')
+// 스토어에서 선택된 장소 정보를 우선 표시하고, API로 받아온 상세 정보로 보강 (새로고침/직접 진입 대응)
+const location = ref(null)
+
+const placeName = computed(() => location.value?.name || mapStore.selectedLocation?.name || '전체 장소')
+const placeCategory = computed(() => location.value?.category || mapStore.selectedLocation?.category || '')
+
+// 지도 마커 색상(카테고리별)과 동일한 팔레트 (style.css --cat-* 토큰 기준)
+const CATEGORY_COLORS = {
+  '관광지': 'var(--cat-tour)',
+  '음식점': 'var(--cat-food)',
+  '문화시설': 'var(--cat-culture)',
+  '쇼핑': 'var(--cat-shopping)',
+  '숙박': 'var(--cat-stay)'
+}
+const placeCategoryColor = computed(() => CATEGORY_COLORS[placeCategory.value] || 'var(--cat-tour)')
+const placeAddress = computed(() => location.value?.address || mapStore.selectedLocation?.address || '')
+
+// 상대경로(/uploads/...)일 수 있으므로 백엔드 origin 기준으로 풀어줌
+const placeImageUrl = computed(() => {
+  const url = location.value?.image_url || mapStore.selectedLocation?.image_url
+  if (!url) return ''
+  if (/^https?:\/\//.test(url)) return url
+  return `${import.meta.env.VITE_API_BASE_URL}${url}`
+})
+
+const fetchLocation = async () => {
+  const locId = route.params.location_id
+  if (!locId) return
+  try {
+    const { data } = await api.get(`/locations/${locId}`)
+    location.value = data
+  } catch (err) {
+    // 장소 정보를 못 가져와도 게시판 자체는 계속 보여준다
+  }
+}
 
 const goBack = () => {
   router.push('/')
@@ -135,7 +167,10 @@ const fetchPosts = async () => {
   }
 }
 
-onMounted(fetchPosts)
+onMounted(() => {
+  fetchLocation()
+  fetchPosts()
+})
 </script>
 
 <style scoped>
@@ -206,7 +241,7 @@ onMounted(fetchPosts)
 
 .place-hero {
   position: relative;
-  height: 152px;
+  height: 200px;
   flex: none;
   background: repeating-linear-gradient(45deg, #e6e4dd, #e6e4dd 11px, #f0efea 11px, #f0efea 22px);
 }
@@ -226,6 +261,12 @@ onMounted(fetchPosts)
   line-height: 1;
   color: var(--text-primary);
   padding: 0;
+}
+
+.hero-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero-placeholder {
@@ -261,7 +302,6 @@ onMounted(fetchPosts)
 .place-cat {
   font-size: 12px;
   font-weight: 700;
-  color: var(--cat-tour);
   background: #f6f5f2;
   padding: 3px 9px;
   border-radius: 20px;
