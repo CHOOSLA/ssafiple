@@ -13,6 +13,7 @@ const router = useRouter()
 const mapInstance = shallowRef(null)
 const clustererInstance = shallowRef(null)
 let markers = [] // 단순 배열로 관리
+let selectedOverlay = null // 선택된 장소 고정 오버레이
 
 onMounted(() => {
   initMap()
@@ -226,10 +227,19 @@ watch(() => mapStore.locations, (newLocations) => {
   drawMarkers(newLocations)
 }, { deep: true })
 
-// 왼쪽 목록 등에서 장소 선택 시 지도 중심 부드럽게 이동
+// 왼쪽 목록 등에서 장소 선택 시 지도 중심 부드럽게 이동 및 오버레이 띄우기
 watch(() => mapStore.selectedLocation, (loc) => {
+  if (selectedOverlay) {
+    selectedOverlay.setMap(null)
+    selectedOverlay = null
+  }
+  
   if (loc && loc.latitude && loc.longitude && mapInstance.value) {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
+    
+    // 선택된 장소로 지도 레벨 살짝 확대 (Zoom In)
+    mapInstance.value.setLevel(4, { animate: true })
+    
     const panel = document.querySelector('.left-panel')
     const panelWidth = panel ? panel.offsetWidth : 550
     
@@ -241,6 +251,27 @@ watch(() => mapStore.selectedLocation, (loc) => {
     } else {
       mapInstance.value.panTo(position)
     }
+    
+    // 오버레이 생성 및 표시
+    const color = catColors[loc.category] || '#f15b4c'
+    const imageUrl = loc.image_url || ''
+    const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">사진 없음</div>`
+    const content = `
+      <div class="hover-pane">
+        ${imageTag}
+        <div class="hover-info">
+          <div class="hover-title">${loc.name}</div>
+          <div class="hover-category" style="color: ${color}">${loc.category}</div>
+        </div>
+      </div>
+    `
+    selectedOverlay = new window.kakao.maps.CustomOverlay({
+      content: content,
+      position: position,
+      yAnchor: 1.5,
+      zIndex: 1000
+    })
+    selectedOverlay.setMap(mapInstance.value)
   }
 })
 </script>
