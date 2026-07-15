@@ -30,6 +30,45 @@
               📍 {{ loc.name }}
             </button>
           </div>
+
+          <!-- 첫 인사 말풍선 하단에 취향/기분 선택 카드 표시 (자유 입력 대신 정해진 태그만 고르게 제한) -->
+          <div v-if="m.id === 1 && chat.showPreferencePrompt" class="preference-card">
+            <div class="preference-question">취향으로 대화할까요, 오늘 기분으로 대화할까요?</div>
+            <div class="preference-mode-row">
+              <button
+                type="button"
+                class="mode-chip"
+                :class="{ active: chat.preferenceMode === 'taste' }"
+                @click="chat.selectPreferenceMode('taste')"
+              >
+                취향으로
+              </button>
+              <button
+                type="button"
+                class="mode-chip"
+                :class="{ active: chat.preferenceMode === 'mood' }"
+                @click="chat.selectPreferenceMode('mood')"
+              >
+                오늘 기분으로
+              </button>
+              <button type="button" class="mode-skip" @click="chat.skipPreferences()">건너뛸게요</button>
+            </div>
+            <div v-if="chat.preferenceMode" class="preference-tag-row">
+              <button
+                v-for="tag in chat.currentTagOptions"
+                :key="tag"
+                type="button"
+                class="tag-chip"
+                :class="{ active: chat.selectedTags.includes(tag) }"
+                @click="chat.toggleTag(tag)"
+              >
+                {{ tag }}
+              </button>
+            </div>
+            <button v-if="chat.preferenceMode" type="button" class="confirm-btn" @click="chat.confirmPreferences()">
+              이 취향으로 대화 시작{{ chat.selectedTags.length ? ` (${chat.selectedTags.length})` : '' }}
+            </button>
+          </div>
         </div>
 
         <div v-if="chat.isLoading" class="message-row ai">
@@ -41,6 +80,14 @@
 
       <div class="quick-actions">
         <button
+          v-if="!chat.showPreferencePrompt"
+          type="button"
+          class="quick-chip pref-toggle-chip"
+          @click="chat.reopenPreferencePrompt()"
+        >
+          🎯 취향 변경{{ chat.selectedTags.length ? ` (${chat.selectedTags.length})` : '' }}
+        </button>
+        <button
           v-for="label in QUICK_ACTIONS"
           :key="label"
           type="button"
@@ -50,16 +97,6 @@
         >
           {{ label }}
         </button>
-      </div>
-
-      <div class="preference-row">
-        <span class="preference-label" title="매 질문마다 반영되는 취향 힌트예요. 서버에 저장되지 않아요.">취향</span>
-        <input
-          v-model="chat.preferences"
-          class="preference-input"
-          type="text"
-          placeholder="예: 조용한 자연 위주, 매운 음식 좋아함 (선택)"
-        />
       </div>
 
       <form class="input-area" @submit.prevent="handleSend">
@@ -314,33 +351,75 @@ const handleQuickAction = (label) => {
   opacity: 0.6;
 }
 
-.preference-row {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid #f0eee9;
-}
-
-.preference-label {
-  flex: none;
-  font-size: 11px;
-  font-weight: 700;
+.pref-toggle-chip {
+  border-color: var(--accent);
   color: var(--accent);
-  cursor: help;
 }
 
-.preference-input {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid #e8e5de;
-  background: #f4f2ee;
-  border-radius: 12px;
-  padding: 6px 10px;
-  font-size: 12.5px;
+.preference-card {
+  margin-top: 8px;
+  max-width: 92%;
+  background: #fff;
+  border: 1px solid #eceae4;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.preference-question {
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-primary);
-  outline: none;
+}
+
+.preference-mode-row,
+.preference-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mode-chip,
+.tag-chip {
+  white-space: nowrap;
+  background: #f4f2ee;
+  border: 1px solid #e8e5de;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #4a4843;
+  cursor: pointer;
+}
+
+.mode-chip.active,
+.tag-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.mode-skip {
+  white-space: nowrap;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.confirm-btn {
+  align-self: flex-start;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: 16px;
+  padding: 7px 14px;
+  cursor: pointer;
 }
 
 .input-area {
