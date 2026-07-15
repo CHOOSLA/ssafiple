@@ -113,7 +113,7 @@ const renderMap = () => {
 
   const options = {
     center: new window.kakao.maps.LatLng(37.5665, 126.9780),
-    level: 7
+    level: 5 // 처음 진입 시 핀이 바로 보이도록 레벨을 5(좁은 범위)로 설정
   }
   mapInstance.value = new window.kakao.maps.Map(container, options)
   
