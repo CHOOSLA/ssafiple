@@ -10,8 +10,11 @@ export const useMapStore = defineStore('map', () => {
   
   // 무한 스크롤 상태
   const skip = ref(0)
-  const limit = ref(50)
+  const limit = ref(200)
   const hasMore = ref(true)
+  
+  // 줌 레벨 너무 축소 시 안내용 상태
+  const isZoomOutTooMuch = ref(false)
   
   // 현재 검색/필터 상태 캐시
   const currentQuery = ref({ category: null, q: null, bbox: null })
@@ -33,7 +36,9 @@ export const useMapStore = defineStore('map', () => {
       const params = { skip: skip.value, limit: limit.value }
       if (category) params.category = category
       if (q) params.q = q
-      if (bbox) Object.assign(params, bbox)
+      if (bbox) {
+        Object.assign(params, bbox)
+      }
       
       const response = await api.get('/locations/', { params })
       const data = Array.isArray(response?.data) ? response.data : []
@@ -60,7 +65,9 @@ export const useMapStore = defineStore('map', () => {
       const params = { skip: skip.value, limit: limit.value }
       if (currentQuery.value.category) params.category = currentQuery.value.category
       if (currentQuery.value.q) params.q = currentQuery.value.q
-      if (currentQuery.value.bbox) Object.assign(params, currentQuery.value.bbox)
+      if (currentQuery.value.bbox) {
+        Object.assign(params, currentQuery.value.bbox)
+      }
       
       const response = await api.get('/locations/', { params })
       if (response.data.length > 0) {
@@ -89,6 +96,7 @@ export const useMapStore = defineStore('map', () => {
     hasMore,
     selectedLocation,
     searchQuery,
+    isZoomOutTooMuch,
     fetchLocations,
     fetchMoreLocations,
     selectLocation,

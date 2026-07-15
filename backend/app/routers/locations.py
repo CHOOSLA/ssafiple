@@ -15,6 +15,8 @@ def list_locations(
     sw_lng: Optional[float] = None,
     ne_lat: Optional[float] = None,
     ne_lng: Optional[float] = None,
+    center_lat: Optional[float] = None,
+    center_lng: Optional[float] = None,
     skip: int = 0,
     limit: int = 500, 
     db: Session = Depends(get_db)
@@ -30,6 +32,16 @@ def list_locations(
         query = query.filter(Location.latitude >= sw_lat, Location.latitude <= ne_lat)
     if sw_lng is not None and ne_lng is not None:
         query = query.filter(Location.longitude >= sw_lng, Location.longitude <= ne_lng)
+        
+    # 같은 장소에 여러 핀이 겹치는 현상을 방지하기 위해 위도/경도 기준으로 그룹화
+    query = query.group_by(Location.latitude, Location.longitude)
+        
+    if center_lat is not None and center_lng is not None:
+        # SQLite 호환을 위해 단순 피타고라스 제곱합으로 거리 계산하여 가까운 순 정렬
+        query = query.order_by(
+            ((Location.latitude - center_lat) * (Location.latitude - center_lat)) +
+            ((Location.longitude - center_lng) * (Location.longitude - center_lng))
+        )
         
     from app.models import Post, Comment
 
