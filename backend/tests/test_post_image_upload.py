@@ -7,7 +7,7 @@ class PostImageUploadTests(unittest.TestCase):
     def test_upload_image_returns_public_url(self):
         client = TestClient(app)
         response = client.post(
-            "/posts/upload-image",
+            "/api/posts/upload-image",
             files={"file": ("sample.png", b"fake-image-bytes", "image/png")},
         )
 
