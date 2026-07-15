@@ -198,25 +198,27 @@ const renderMap = () => {
   
   // 클러스터 클릭 시 시각적 중앙(왼쪽 패널 고려)으로 줌 인 하는 커스텀 로직
   window.kakao.maps.event.addListener(clustererInstance.value, 'clusterclick', (cluster) => {
-    // 1. 클러스터의 중심좌표로 이동하되 왼쪽 패널 너비만큼 보정 (먼저 이동)
     const center = cluster.getCenter()
-    const proj = mapInstance.value.getProjection()
-    const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
-    const panelWidth = panel ? panel.offsetWidth : 550
     
-    if (proj) {
-      let point = proj.pointFromCoords(center)
-      point.x = point.x - (panelWidth / 2)
-      mapInstance.value.panTo(proj.coordsFromPoint(point))
-    } else {
-      mapInstance.value.panTo(center)
-    }
+    // 1. 클릭한 클러스터의 실제 좌표를 줌 기준점(anchor)으로 삼아, 
+    //    지도가 엉뚱한 화면 정가운데가 아닌 "내가 클릭한 숫자"를 향해 부드럽게 확대되도록 설정
+    const level = mapInstance.value.getLevel() - 1
+    mapInstance.value.setLevel(level, { animate: true, anchor: center })
     
-    // 2. 이동 애니메이션이 안정화된 직후(약 250ms)에 줌 인 실행
-    // 카카오맵 특성상 panTo와 setLevel을 동시에 호출하면 시각적 보정 좌표가 틀어지는 버그 방지
+    // 2. 확대 애니메이션이 거의 끝나갈 때쯤(약 250ms 뒤), 
+    //    그 녀석을 왼쪽 패널을 피해서 시각적 빈 공간 정중앙으로 스르륵 끌어옵니다.
     setTimeout(() => {
-      const level = mapInstance.value.getLevel() - 1
-      mapInstance.value.setLevel(level, { animate: true })
+      const proj = mapInstance.value.getProjection()
+      const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
+      const panelWidth = panel ? panel.offsetWidth : 550
+      
+      if (proj) {
+        let point = proj.pointFromCoords(center)
+        point.x = point.x - (panelWidth / 2)
+        mapInstance.value.panTo(proj.coordsFromPoint(point))
+      } else {
+        mapInstance.value.panTo(center)
+      }
     }, 250)
   })
   
