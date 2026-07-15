@@ -35,7 +35,7 @@
           v-for="loc in mapStore.locations" 
           :key="loc.id" 
           class="place-card"
-          @click="mapStore.selectLocation(loc)"
+          @click="goToPosts(loc)"
         >
           <!-- 왼쪽 썸네일 공간 -->
           <span 
@@ -71,9 +71,11 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
+const router = useRouter()
 const searchQuery = ref('')
 
 const catColors = {
@@ -90,6 +92,11 @@ const getCatColor = (cat) => {
 
 const handleSearch = () => {
   mapStore.fetchLocations(null, searchQuery.value)
+}
+
+const goToPosts = (loc) => {
+  mapStore.selectLocation(loc)
+  router.push(`/locations/${loc.id}/posts`)
 }
 
 const observerTarget = ref(null)
