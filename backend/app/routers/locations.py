@@ -33,6 +33,9 @@ def list_locations(
     if sw_lng is not None and ne_lng is not None:
         query = query.filter(Location.longitude >= sw_lng, Location.longitude <= ne_lng)
         
+    # 같은 장소에 여러 핀이 겹치는 현상을 방지하기 위해 위도/경도 기준으로 그룹화
+    query = query.group_by(Location.latitude, Location.longitude)
+        
     if center_lat is not None and center_lng is not None:
         # SQLite 호환을 위해 단순 피타고라스 제곱합으로 거리 계산하여 가까운 순 정렬
         query = query.order_by(

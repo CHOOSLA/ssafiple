@@ -10,7 +10,7 @@ export const useMapStore = defineStore('map', () => {
   
   // 무한 스크롤 상태
   const skip = ref(0)
-  const limit = ref(50)
+  const limit = ref(200)
   const hasMore = ref(true)
   
   // 현재 검색/필터 상태 캐시
