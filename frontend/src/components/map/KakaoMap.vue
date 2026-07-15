@@ -174,7 +174,8 @@ const renderMap = () => {
   clustererInstance.value = new window.kakao.maps.MarkerClusterer({
     map: mapInstance.value,
     averageCenter: true, // 클러스터에 포함된 마커들의 평균 위치를 클러스터 마커 위치로 설정
-    minLevel: 5,         // 클러스터 할 최소 지도 레벨 
+    minLevel: 3,         // 더 확대해야 풀리도록(3레벨부터 클러스터링) 설정
+    gridSize: 80,        // 기본값 60보다 반경을 넓혀서 더 많은 핀을 한 덩어리로 잘 묶게 만듦
     disableClickZoom: false, // 클러스터 마커 클릭 시 줌 인
     styles: [{
       width: '40px', height: '40px',
