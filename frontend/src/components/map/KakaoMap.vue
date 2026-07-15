@@ -373,10 +373,17 @@ const drawMarkers = (locations) => {
       if (!proj) return
       
       const clickedPoint = proj.pointFromCoords(marker.originalPosition)
+      if (!clickedPoint) {
+        // 애니메이션 도중 클릭하여 좌표 계산이 안 되면 바로 라우터 강제 이동 처리
+        mapStore.selectLocation(loc)
+        router.push(`/locations/${loc.id}/posts`)
+        return
+      }
       
       // 픽셀 거리 30 이내로 겹치는 마커 찾기
       const overlappingMarkers = markers.filter(m => {
         const p = proj.pointFromCoords(m.originalPosition)
+        if (!p) return false
         const dx = p.x - clickedPoint.x
         const dy = p.y - clickedPoint.y
         return Math.sqrt(dx*dx + dy*dy) < 30
