@@ -9,14 +9,14 @@
           <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line>
         </svg>
         <div class="text">
-          <p>지도를 더 확대해주세요</p>
-          <span>이 지역의 핫플을 보려면 화면을 당겨보세요.</span>
+          <p>{{ $t('map.zoomWarningTitle') }}</p>
+          <span>{{ $t('map.zoomWarningDesc') }}</span>
         </div>
       </div>
     </Transition>
-    
+
     <!-- 내 위치로 이동 버튼 -->
-    <button class="my-location-btn" @click="moveToMyLocation" title="내 위치로 이동">
+    <button class="my-location-btn" @click="moveToMyLocation" :title="$t('map.myLocationTitle')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <circle cx="12" cy="12" r="3"></circle>
@@ -28,10 +28,12 @@
 <script setup>
 import { onMounted, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()
 const router = useRouter()
+const { t } = useI18n()
 // 지도 인스턴스, 클러스터러, 마커 같은 무거운 객체는 Vue의 Proxy(반응성) 래핑을 피해야 렉이 안 걸립니다.
 const mapInstance = shallowRef(null)
 const clustererInstance = shallowRef(null)
@@ -74,7 +76,7 @@ const moveToMyLocation = () => {
       },
       (error) => {
         console.error(error)
-        alert('위치 정보를 가져올 수 없습니다. 브라우저의 위치 권한 설정을 확인해주세요.')
+        alert(t('map.geoErrorAlert'))
       },
       {
         enableHighAccuracy: true,
@@ -83,7 +85,7 @@ const moveToMyLocation = () => {
       }
     )
   } else {
-    alert('이 브라우저에서는 위치 정보를 지원하지 않습니다.')
+    alert(t('map.geoUnsupportedAlert'))
   }
 }
 
@@ -455,14 +457,14 @@ const drawMarkers = (locations) => {
 
       // 이미지가 없으면 기본 회색 박스
       const imageUrl = loc.image_url || '';
-      const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">사진 없음</div>`;
+      const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">${t('map.noPhoto')}</div>`;
 
       const content = `
         <div class="hover-pane">
           ${imageTag}
           <div class="hover-info">
             <div class="hover-title">${loc.name}</div>
-            <div class="hover-category" style="color: ${color}">${loc.category}</div>
+            <div class="hover-category" style="color: ${color}">${t(`common.category.${loc.category || '기타'}`)}</div>
           </div>
         </div>
       `;
@@ -549,13 +551,13 @@ watch(() => mapStore.selectedLocation, (loc) => {
     // 오버레이 생성 및 표시
     const color = catColors[loc.category] || '#f15b4c'
     const imageUrl = loc.image_url || ''
-    const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">사진 없음</div>`
+    const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">${t('map.noPhoto')}</div>`
     const content = `
       <div class="hover-pane">
         ${imageTag}
         <div class="hover-info">
           <div class="hover-title">${loc.name}</div>
-          <div class="hover-category" style="color: ${color}">${loc.category}</div>
+          <div class="hover-category" style="color: ${color}">${t(`common.category.${loc.category || '기타'}`)}</div>
         </div>
       </div>
     `

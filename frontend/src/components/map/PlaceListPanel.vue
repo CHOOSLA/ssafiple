@@ -3,18 +3,21 @@
     
     <!-- 로고 및 검색 헤더 영역 (LocalHub 디자인 참조) -->
     <div class="header-section">
-      <button type="button" class="brand-row brand-row-link" @click="goHome">
-        <img class="brand-logo" src="/favicon.svg" alt="SSAFIPLE 로고" />
-        <div class="brand-text">
-          <div class="brand-title">SSAFIPLE</div>
-          <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
-        </div>
-      </button>
+      <div class="header-top-row">
+        <button type="button" class="brand-row brand-row-link" @click="goHome">
+          <img class="brand-logo" src="/favicon.svg" :alt="$t('common.brand.logoAlt')" />
+          <div class="brand-text">
+            <div class="brand-title">{{ $t('common.brand.name') }}</div>
+            <div class="brand-subtitle">{{ $t('common.brand.tagline') }}</div>
+          </div>
+        </button>
+        <LangSwitcher />
+      </div>
       <div class="search-row">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2"/><line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round"/></svg>
         <input
           class="search-input"
-          placeholder="장소, 주소 검색"
+          :placeholder="$t('map.searchPlaceholder')"
           v-model="mapStore.searchQuery"
           @keyup.enter="handleSearch"
         />
@@ -22,7 +25,7 @@
           v-if="mapStore.searchQuery"
           type="button"
           class="search-clear-btn"
-          aria-label="검색어 지우기"
+          :aria-label="$t('common.clearSearchAria')"
           @click="clearSearch"
         >
           ×
@@ -32,13 +35,15 @@
 
     <!-- 목록 영역 -->
     <div class="list-container">
-      <div class="list-header">주변 장소 <span>{{ mapStore.locations.length }}</span>곳 · 핀을 눌러 탐색하세요</div>
-      
+      <i18n-t keypath="map.nearbySummary" tag="div" class="list-header">
+        <template #count><span>{{ mapStore.locations.length }}</span></template>
+      </i18n-t>
+
       <div class="list-body">
-        <div v-if="mapStore.isLoading" class="loading">데이터를 불러오는 중입니다...</div>
+        <div v-if="mapStore.isLoading" class="loading">{{ $t('map.loadingLocations') }}</div>
         <!-- 줌 아웃 시(결과 0개)에도 깔끔하게 표시되도록 메시지 통일 -->
         <div v-else-if="mapStore.locations.length === 0" class="empty">
-          {{ mapStore.isZoomOutTooMuch ? '지도를 더 확대해주세요.' : '검색 결과가 없습니다.' }}
+          {{ mapStore.isZoomOutTooMuch ? $t('map.zoomInMessage') : $t('map.noResultsMessage') }}
         </div>
         
         <button 
@@ -55,7 +60,7 @@
             class="place-thumb" 
             :style="loc.image_url ? { backgroundImage: `url(${loc.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}"
           >
-            <span class="cat-badge" :style="{ backgroundColor: getCatColor(loc.category) }">{{ loc.category || '기타' }}</span>
+            <span class="cat-badge" :style="{ backgroundColor: getCatColor(loc.category) }">{{ $t(`common.category.${loc.category || '기타'}`) }}</span>
             <span v-if="!loc.image_url" class="thumb-text">NO PHOTO</span>
           </span>
 
@@ -63,7 +68,7 @@
           <span class="place-info">
             <span class="p-name">{{ loc.name }}</span>
             <span class="p-addr">{{ loc.address }}</span>
-            <span class="p-posts">게시글 {{ loc.post_count || 0 }}개</span>
+            <span class="p-posts">{{ $t('map.postCount', { count: loc.post_count || 0 }) }}</span>
           </span>
 
           <!-- 오른쪽 게시글 미리보기 (항상 2슬롯 고정) -->
@@ -72,17 +77,17 @@
               <span v-if="pv" class="preview-card">
                 <span class="pv-title">{{ pv.title }}</span>
                 <span class="pv-snippet">{{ pv.snippet }}</span>
-                <span class="pv-comments">댓글 {{ pv.comment_count }}개</span>
+                <span class="pv-comments">{{ $t('map.commentCount', { count: pv.comment_count }) }}</span>
               </span>
               <span v-else class="empty-preview">{{ emptyPreviewText(loc) }}</span>
             </template>
           </span>
         </button>
-        
+
         <!-- 무한 스크롤 관찰 요소 -->
         <div ref="observerTarget" class="observer-trigger">
-          <span v-if="mapStore.isFetchingMore">추가 데이터를 불러오는 중...</span>
-          <span v-else-if="!mapStore.hasMore && mapStore.locations.length > 0">모든 장소를 불러왔습니다.</span>
+          <span v-if="mapStore.isFetchingMore">{{ $t('map.loadingMore') }}</span>
+          <span v-else-if="!mapStore.hasMore && mapStore.locations.length > 0">{{ $t('map.allLoaded') }}</span>
         </div>
       </div>
     </div>
@@ -92,10 +97,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMapStore } from '@/stores/mapStore'
+import LangSwitcher from '@/components/common/LangSwitcher.vue'
 
 const mapStore = useMapStore()
 const router = useRouter()
+const { t } = useI18n()
 
 const catColors = {
   '관광지': '#f15b4c',
@@ -133,7 +141,7 @@ const previewSlots = (loc) => {
 // 빈 슬롯에 표시할 안내 문구 (전체 무글 vs 한 개만 있는 경우 구분)
 const emptyPreviewText = (loc) => {
   const count = (loc.latest_posts || []).length
-  return count === 0 ? '첫 글을 남겨주세요' : '글을 더 남겨주세요'
+  return count === 0 ? t('map.firstPostPrompt') : t('map.morePostsPrompt')
 }
 
 const handleSearch = () => {
@@ -197,10 +205,18 @@ onUnmounted(() => {
   border-bottom: 1px solid #eceae6;
 }
 
+.header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .brand-row {
   display: flex;
   align-items: center;
   gap: 9px;
+  min-width: 0;
 }
 
 .brand-row-link {
