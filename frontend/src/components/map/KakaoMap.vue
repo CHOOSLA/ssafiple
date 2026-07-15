@@ -571,8 +571,9 @@ watch(() => mapStore.selectedLocation, (loc) => {
 .floating-zoom-warning {
   position: absolute;
   top: 24px;
-  /* 화면이 왼쪽 패널(약 450px)로 가려지므로 그 우측 공간의 중앙쯤 오도록 설정 */
-  left: calc(50% + 225px); 
+  /* 화면이 왼쪽 패널(550px 고정)로 가려지므로, 우측 텅 빈 공간의 정확한 정중앙 좌표 설정 */
+  /* 550px + (100vw - 550px) / 2 = 50vw + 275px */
+  left: calc(50% + 275px); 
   transform: translateX(-50%);
   background: rgba(28, 27, 26, 0.85); /* 다크 모드 풍의 반투명 배경 */
   backdrop-filter: blur(8px);
