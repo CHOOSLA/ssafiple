@@ -716,6 +716,14 @@ watch(() => mapStore.selectedLocation, (loc) => {
   font-weight: 600;
 }
 
+/* 카카오맵이 CustomOverlay 콘텐츠를 감싸는 무명 래퍼 div가 마우스 이벤트를 가로채므로,
+   내부 콘텐츠의 pointer-events: none만으로는 부족하다. 래퍼까지 이벤트를 통과시켜야
+   라벨이나 팝업에 가려진 다른 핀들도 hover가 가능해진다. */
+:deep(div:has(> .marker-name-label)),
+:deep(div:has(> .hover-pane)) {
+  pointer-events: none;
+}
+
 :deep(.marker-name-label) {
   background: rgba(255, 255, 255, 0.95);
   padding: 4px 9px;
