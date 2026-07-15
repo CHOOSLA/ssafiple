@@ -198,11 +198,7 @@ const renderMap = () => {
   
   // 클러스터 클릭 시 시각적 중앙(왼쪽 패널 고려)으로 줌 인 하는 커스텀 로직
   window.kakao.maps.event.addListener(clustererInstance.value, 'clusterclick', (cluster) => {
-    // 현재 레벨에서 1단계 부드럽게 줌 인
-    const level = mapInstance.value.getLevel() - 1
-    mapInstance.value.setLevel(level, { animate: true })
-    
-    // 클러스터의 중심좌표로 이동하되 왼쪽 패널 너비만큼 보정
+    // 1. 클러스터의 중심좌표로 이동하되 왼쪽 패널 너비만큼 보정 (먼저 이동)
     const center = cluster.getCenter()
     const proj = mapInstance.value.getProjection()
     const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
@@ -215,6 +211,13 @@ const renderMap = () => {
     } else {
       mapInstance.value.panTo(center)
     }
+    
+    // 2. 이동 애니메이션이 안정화된 직후(약 250ms)에 줌 인 실행
+    // 카카오맵 특성상 panTo와 setLevel을 동시에 호출하면 시각적 보정 좌표가 틀어지는 버그 방지
+    setTimeout(() => {
+      const level = mapInstance.value.getLevel() - 1
+      mapInstance.value.setLevel(level, { animate: true })
+    }, 250)
   })
   
   // 줌 컨트롤 추가 (우측 상단으로 이동 - AI 챗봇 버튼과 겹침 방지)
