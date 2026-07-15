@@ -191,6 +191,11 @@ const renderMap = () => {
     }]
   })
   
+  // 클러스터링이 완료될 때마다 라벨을 갱신 (클러스터 밖으로 튕겨나온 낱개 핀만 라벨 표시)
+  window.kakao.maps.event.addListener(clustererInstance.value, 'clustered', () => {
+    updateNameLabels()
+  })
+  
   // 줌 컨트롤 추가 (우측 상단으로 이동 - AI 챗봇 버튼과 겹침 방지)
   const zoomControl = new window.kakao.maps.ZoomControl()
   mapInstance.value.addControl(zoomControl, window.kakao.maps.ControlPosition.TOPRIGHT)
@@ -259,12 +264,14 @@ const renderMap = () => {
 const updateNameLabels = () => {
   if (!mapInstance.value) return
   const currentLevel = mapInstance.value.getLevel()
-  // 클러스터링이 3레벨부터 시작되므로(minLevel:3), 라벨은 그 전인 2레벨 이하일 때만 표시해야 허공에 안 뜸
-  const showLabels = currentLevel < 3 
+  const showLabels = currentLevel <= 5 // 레벨 5 이하일 때 낱개로 튀어나온 핀에 라벨 표시 가능
   
   nameLabelOverlays.forEach(item => {
-    // 현재 선택된 장소(selectedLocation)이거나 마우스 호버 중일 경우 라벨 숨김 보장
-    if (showLabels && mapStore.selectedLocation?.id !== item.id) {
+    const marker = markers.find(m => m.locData.id === item.id)
+    const isMarkerVisible = marker && marker.getMap() !== null
+    
+    // 마커가 클러스터에 안 묶이고 화면에 보일 때만 라벨 표시 (선택된 장소는 제외)
+    if (showLabels && isMarkerVisible && mapStore.selectedLocation?.id !== item.id) {
       item.overlay.setMap(mapInstance.value)
     } else {
       item.overlay.setMap(null)
@@ -441,8 +448,8 @@ const drawMarkers = (locations) => {
         activeHoverOverlay.setMap(null);
         activeHoverOverlay = null;
       }
-      // 아웃 시 선택된 장소가 아니고, 줌 레벨이 3 미만(1,2)이면 라벨 복구
-      if (mapStore.selectedLocation?.id !== loc.id && mapInstance.value.getLevel() < 3) {
+      // 아웃 시 선택된 장소가 아니고, 마커가 화면에 보이며 줌 레벨이 5 이하일 때 복구
+      if (mapStore.selectedLocation?.id !== loc.id && marker.getMap() !== null && mapInstance.value.getLevel() <= 5) {
         nameLabel.setMap(mapInstance.value);
       }
     });
