@@ -476,10 +476,11 @@ const drawMarkers = (locations) => {
 
   // 기존 핀(마커) 메모리에서 완전히 지우기 (버그 방지)
   markers.forEach(m => m.setMap(null))
-  
+
   // 기존 클러스터러 초기화
   clustererInstance.value.clear()
   markers = []
+  pinnedMarker = null // 이전 마커 인스턴스가 전부 폐기되므로 참조 해제 (재그리기 후 재고정)
   
   // 데이터 갱신 시(이동/확대 등) 기존에 남아있는 오버레이들 완벽 클린업
   nameLabelOverlays.forEach(item => item.overlay.setMap(null))
@@ -642,7 +643,12 @@ const drawMarkers = (locations) => {
 
   // 클러스터러에 마커들을 한 번에 추가
   clustererInstance.value.addMarkers(markers)
-  
+
+  // 데이터 갱신으로 마커가 새로 만들어졌으니, 선택 중인 장소가 있으면 다시 고정
+  if (mapStore.selectedLocation) {
+    pinSelectedMarker(mapStore.selectedLocation)
+  }
+
   // 방금 만든 라벨들에 대해 현재 줌 레벨 기준으로 표시 여부 초기 판별
   updateNameLabels()
 }
@@ -658,13 +664,42 @@ watch(() => mapStore.locations, (newLocations) => {
   drawMarkers(newLocations)
 }, { deep: true })
 
+// 선택된 장소 마커는 클러스터러에서 분리해 지도에 직접 표시 — 축소로 주변 핀이
+// 클러스터에 흡수되어도 선택한 핀은 항상 보이게 유지
+let pinnedMarker = null
+
+const unpinSelectedMarker = () => {
+  if (!pinnedMarker) return
+  pinnedMarker.setZIndex(0)
+  if (clustererInstance.value) {
+    pinnedMarker.setMap(null)
+    clustererInstance.value.addMarker(pinnedMarker)
+  }
+  pinnedMarker = null
+}
+
+const pinSelectedMarker = (loc) => {
+  unpinSelectedMarker()
+  if (!loc || !clustererInstance.value || !mapInstance.value) return
+  const marker = markers.find((m) => m.locData?.id === loc.id)
+  if (!marker) return
+  clustererInstance.value.removeMarker(marker)
+  marker.setMap(mapInstance.value)
+  marker.setZIndex(200)
+  pinnedMarker = marker
+}
+
 // 왼쪽 목록 등에서 장소 선택 시 지도 중심 부드럽게 이동 및 오버레이 띄우기
 watch(() => mapStore.selectedLocation, (loc) => {
   if (selectedOverlay) {
     selectedOverlay.setMap(null)
     selectedOverlay = null
   }
-  
+
+  if (!loc) {
+    unpinSelectedMarker()
+  }
+
   if (loc && loc.latitude && loc.longitude && mapInstance.value) {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
@@ -707,6 +742,9 @@ watch(() => mapStore.selectedLocation, (loc) => {
       zIndex: 1000
     })
     selectedOverlay.setMap(mapInstance.value)
+
+    // 선택된 핀을 클러스터에서 분리해 항상 표시
+    pinSelectedMarker(loc)
 
     // 선택된 마커의 텍스트 라벨 숨기기 및 이전 선택 라벨 복구 (updateNameLabels 재호출)
     updateNameLabels()
