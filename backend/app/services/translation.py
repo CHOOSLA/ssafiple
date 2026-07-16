@@ -6,9 +6,9 @@
 import hashlib
 
 import openai
-from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.database import SessionLocal
 from app.models import Translation
 
 # target_lang 값별 번역 지시. 결과에 따옴표/설명 없이 번역문만 반환하도록 강하게 제약한다.
@@ -37,17 +37,21 @@ def _call_openai(text: str, target_lang: str) -> str:
     return (response.choices[0].message.content or "").strip()
 
 
-def translate(db: Session, text: str, target_lang: str) -> str:
+def translate(text: str, target_lang: str) -> str:
     """캐시를 먼저 조회하고, 없으면 OpenAI로 번역 후 캐시에 저장해 반환한다.
+
+    DB 세션은 캐시 조회/저장 순간에만 짧게 연다 — OpenAI 응답을 기다리는 동안
+    커넥션 풀을 점유하면 동시 사용자 몇 명만으로 풀이 고갈된다(QueuePool 장애 원인).
 
     API 키가 없으면 번역 없이 원문을 그대로 돌려준다(데모 모드, 캐시하지 않음).
     OpenAI 호출 실패는 예외를 그대로 전파하며 라우터가 502로 변환한다.
     """
     source_hash = _source_hash(text, target_lang)
 
-    cached = db.query(Translation).filter(Translation.source_hash == source_hash).first()
-    if cached:
-        return cached.translated_text
+    with SessionLocal() as db:
+        cached = db.query(Translation).filter(Translation.source_hash == source_hash).first()
+        if cached:
+            return cached.translated_text
 
     if not settings.OPENAI_API_KEY:
         return text
@@ -55,15 +59,16 @@ def translate(db: Session, text: str, target_lang: str) -> str:
     translated = _call_openai(text, target_lang)
 
     # 동시 요청이 같은 원문을 번역해 UNIQUE 충돌이 날 수 있으므로, 실패 시 캐시된 값으로 폴백
-    row = Translation(source_hash=source_hash, translated_text=translated)
-    db.add(row)
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        existing = db.query(Translation).filter(Translation.source_hash == source_hash).first()
-        if existing:
-            return existing.translated_text
-        raise
+    with SessionLocal() as db:
+        row = Translation(source_hash=source_hash, translated_text=translated)
+        db.add(row)
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            existing = db.query(Translation).filter(Translation.source_hash == source_hash).first()
+            if existing:
+                return existing.translated_text
+            raise
 
     return translated

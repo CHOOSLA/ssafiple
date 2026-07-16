@@ -18,10 +18,11 @@ from app.utils.websocket_manager import manager
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 @router.post("", response_model=ChatResponse)
-def chat_with_ai(chat_req: ChatRequest, db: Session = Depends(get_db)):
+def chat_with_ai(chat_req: ChatRequest):
+    # DB 세션을 요청 수명 동안 주입하지 않는다 — 서비스가 필요한 순간에만 짧게 열어,
+    # OpenAI 응답 대기(최대 60초) 중 커넥션 풀이 점유되지 않도록 함
     try:
         reply, locations = chat_service.generate_reply(
-            db,
             chat_req.message,
             chat_req.history,
             chat_req.lang,

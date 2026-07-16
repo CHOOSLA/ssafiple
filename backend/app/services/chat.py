@@ -12,6 +12,7 @@ import openai
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.database import SessionLocal
 from app.models import Location
 from app.schemas import ChatMessage
 
@@ -199,7 +200,7 @@ def build_context(locations: List[Location]) -> str:
 
 
 def generate_reply(
-    db: Session, message: str, history: List[ChatMessage], lang: str = "ko"
+    message: str, history: List[ChatMessage], lang: str = "ko"
 ) -> Tuple[str, List[Location]]:
     """대화 히스토리를 포함해 OpenAI에 질의하고 (답변 텍스트, 매칭된 장소 목록)을 반환합니다.
 
@@ -215,7 +216,8 @@ def generate_reply(
     query_text = message
 
     if not settings.OPENAI_API_KEY:
-        return DEMO_REPLY, find_matching_locations(db, query_text)
+        with SessionLocal() as db:
+            return DEMO_REPLY, find_matching_locations(db, query_text)
 
     # 대화가 처음이든 이어지는 중이든, 사용자의 요청이 막연하면(지역/카테고리/분위기 중
     # 뭔가 빠져 있으면) 장소를 바로 나열하지 말고 부족한 정보를 되물어보게 유도한다.
@@ -237,7 +239,10 @@ def generate_reply(
             "parentheses after the Korean name."
         )
 
-    context = build_context(retrieve_candidate_locations(db, query_text))
+    # DB 조회는 짧은 세션으로 한정 — 최대 60초짜리 OpenAI 호출 동안 커넥션 풀을
+    # 점유하지 않는다 (동시 사용자 증가 시 QueuePool 고갈의 원인이었음)
+    with SessionLocal() as db:
+        context = build_context(retrieve_candidate_locations(db, query_text))
     if context:
         system_prompt = f"{system_prompt}\n\n[참고 데이터]\n{context}"
 
@@ -259,5 +264,6 @@ def generate_reply(
     reply = response.choices[0].message.content
 
     # LLM 답변 텍스트에서 실제로 언급된 장소를 매칭해 지도 이동/검색 트리거로 사용
-    locations = find_mentioned_locations(db, reply)
+    with SessionLocal() as db:
+        locations = find_mentioned_locations(db, reply)
     return reply, locations

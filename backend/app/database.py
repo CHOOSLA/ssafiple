@@ -3,13 +3,19 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from app.core.config import settings
 
 # SQLite 연결을 위한 check_same_thread 옵션 추가
+# timeout: 동시 쓰기 시 "database is locked"를 즉시 던지지 않고 잠금 해제를 대기
 connect_args = {}
 if settings.DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+    connect_args = {"check_same_thread": False, "timeout": 15}
 
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args=connect_args
+    connect_args=connect_args,
+    # SQLite 커넥션은 파일 핸들 수준으로 가벼우므로 풀을 넉넉히 확보.
+    # 외부 API 대기 중 세션을 쥐는 패턴은 제거했지만, 순간 동시 접속 폭증에
+    # 대비한 안전벨트 (기본 5+10은 데모 트래픽에서도 고갈된 전례 있음)
+    pool_size=30,
+    max_overflow=60,
 )
 
 # SQLite 외래 키(FK) 제약 조건 활성화 (명세 5.2 준수)
