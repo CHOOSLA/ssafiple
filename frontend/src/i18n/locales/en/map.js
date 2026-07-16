@@ -15,5 +15,7 @@ export default {
   myLocationTitle: 'Move to my location',
   geoErrorAlert: "Couldn't get your location. Please check your browser's location permission settings.",
   geoUnsupportedAlert: 'This browser does not support location services.',
-  noPhoto: 'No photo'
+  noPhoto: 'No photo',
+  categoryAll: 'All',
+  categoryFilterAria: 'Category filter'
 }

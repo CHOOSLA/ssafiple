@@ -19,10 +19,12 @@ export default {
   passwordPlaceholder: 'Password',
   category: {
     관광지: 'Attraction',
-    음식점: 'Restaurant',
     문화시설: 'Culture',
     쇼핑: 'Shopping',
     숙박: 'Lodging',
+    레포츠: 'Leisure Sports',
+    축제공연행사: 'Festival & Event',
+    여행코스: 'Travel Course',
     기타: 'Other'
   }
 }

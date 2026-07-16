@@ -107,10 +107,12 @@ const { t } = useI18n()
 
 const catColors = {
   '관광지': '#f15b4c',
-  '음식점': '#ef8a3c',
   '문화시설': '#3f8fd0',
   '쇼핑': '#8a6fd6',
-  '숙박': '#5aa06a'
+  '숙박': '#5aa06a',
+  '레포츠': '#1abc9c',
+  '축제공연행사': '#e0507a',
+  '여행코스': '#c9a227'
 }
 
 const getCatColor = (cat) => {
@@ -145,7 +147,8 @@ const emptyPreviewText = (loc) => {
 }
 
 const handleSearch = () => {
-  mapStore.fetchLocations(null, mapStore.searchQuery)
+  // 현재 선택된 카테고리 필터를 유지한 채로 검색
+  mapStore.fetchLocations(mapStore.categoryFilter, mapStore.searchQuery)
 }
 
 const clearSearch = () => {

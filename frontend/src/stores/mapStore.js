@@ -26,6 +26,13 @@ export const useMapStore = defineStore('map', () => {
     searchQuery.value = query
   }
 
+  // 카테고리 필터 상태 (null = 전체 보기) — CategoryFilter 컴포넌트에서 갱신
+  const categoryFilter = ref(null)
+
+  const setCategoryFilter = (category) => {
+    categoryFilter.value = category
+  }
+
   const fetchLocations = async (category = null, q = null, bbox = null) => {
     isLoading.value = true
     skip.value = 0
@@ -154,11 +161,13 @@ export const useMapStore = defineStore('map', () => {
     hasMore,
     selectedLocation,
     searchQuery,
+    categoryFilter,
     isZoomOutTooMuch,
     fetchLocations,
     fetchMoreLocations,
     selectLocation,
     setSearchQuery,
+    setCategoryFilter,
     routePath,
     routeInfo,
     routeLoading,

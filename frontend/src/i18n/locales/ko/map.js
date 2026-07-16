@@ -15,5 +15,7 @@ export default {
   myLocationTitle: '내 위치로 이동',
   geoErrorAlert: '위치 정보를 가져올 수 없습니다. 브라우저의 위치 권한 설정을 확인해주세요.',
   geoUnsupportedAlert: '이 브라우저에서는 위치 정보를 지원하지 않습니다.',
-  noPhoto: '사진 없음'
+  noPhoto: '사진 없음',
+  categoryAll: '전체',
+  categoryFilterAria: '카테고리 필터'
 }
