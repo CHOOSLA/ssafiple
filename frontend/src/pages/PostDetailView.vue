@@ -12,7 +12,18 @@
       <div v-if="!post" class="status-message">{{ $t('board.loadingPost') }}</div>
 
       <template v-else>
-        <img v-if="post.image_url" :src="resolvedImageUrl" class="post-image" :alt="$t('board.attachedImageAlt')" />
+        <div v-if="galleryImages.length" class="post-gallery">
+          <div class="gallery-track" ref="galleryTrackRef" @scroll="onGalleryScroll">
+            <img
+              v-for="(img, idx) in galleryImages"
+              :key="idx"
+              :src="img"
+              class="gallery-image"
+              :alt="$t('board.attachedImageAlt')"
+            />
+          </div>
+          <div v-if="galleryImages.length > 1" class="gallery-counter">{{ galleryIndex + 1 }} / {{ galleryImages.length }}</div>
+        </div>
 
         <div class="post-content">
           <span class="pill">{{ $t('board.postLabel') }}</span>
@@ -79,12 +90,29 @@ const formatDate = (value) => {
 }
 
 // 백엔드가 /uploads/... 상대경로를 반환하므로, 프론트 origin이 아닌 백엔드 origin 기준으로 풀어줘야 함
-const resolvedImageUrl = computed(() => {
-  const url = post.value?.image_url
+const resolveUrl = (url) => {
   if (!url) return ''
   if (/^https?:\/\//.test(url)) return url
   return `${import.meta.env.VITE_API_BASE_URL}${url}`
+}
+
+// post.images(다중 이미지)가 있으면 그걸 쓰고, 없으면 기존 단일 image_url로 폴백
+const galleryImages = computed(() => {
+  const imgs = post.value?.images
+  if (Array.isArray(imgs) && imgs.length) {
+    return imgs.map((img) => resolveUrl(img.image_url))
+  }
+  return post.value?.image_url ? [resolveUrl(post.value.image_url)] : []
 })
+
+const galleryTrackRef = ref(null)
+const galleryIndex = ref(0)
+
+const onGalleryScroll = () => {
+  const el = galleryTrackRef.value
+  if (!el || !el.clientWidth) return
+  galleryIndex.value = Math.round(el.scrollLeft / el.clientWidth)
+}
 
 const fetchPost = async () => {
   try {
@@ -197,11 +225,40 @@ onMounted(fetchPost)
   color: var(--text-secondary);
 }
 
-.post-image {
-  display: block;
+.post-gallery {
+  position: relative;
+}
+
+.gallery-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.gallery-track::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-image {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
   width: 100%;
-  max-height: 260px;
+  height: 260px;
   object-fit: cover;
+}
+
+.gallery-counter {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
 }
 
 .post-content {
