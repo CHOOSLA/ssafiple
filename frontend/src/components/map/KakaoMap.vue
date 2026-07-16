@@ -349,7 +349,20 @@ const renderMap = () => {
     // (모바일에서 좌측 패딩에 패널 너비 100vw를 더하면 지도 폭을 넘어 튕기는 버그가 있었음)
     const offs = getObscuredOffsets()
     const base = offs.y > 0 ? 48 : 100 // 모바일은 보이는 영역이 작으므로 기본 여백 축소
-    mapInstance.value.setBounds(bounds, base, base, offs.y + base, offs.x + base)
+
+    // 시트를 90%까지 올려둔 상태 등에서는 하단 패딩이 화면을 넘어 setBounds가
+    // 동작하지 않으므로, 세로로 최소 160px의 가시 창이 남도록 클램프
+    const maxBottom = window.innerHeight - base - 160
+    const bottomPad = Math.min(offs.y + base, Math.max(maxBottom, base))
+
+    const levelBefore = mapInstance.value.getLevel()
+    mapInstance.value.setBounds(bounds, base, base, bottomPad, offs.x + base)
+
+    // 마커들이 이미 화면 범위 안이라 setBounds가 줌을 바꾸지 않으면,
+    // 클릭이 무반응처럼 느껴지므로 클러스터 중심으로 한 단계 강제 확대
+    if (mapInstance.value.getLevel() >= levelBefore && levelBefore > 2) {
+      mapInstance.value.setLevel(levelBefore - 1, { anchor: cluster.getCenter(), animate: true })
+    }
   })
   
   // 줌 컨트롤 추가 (우측 상단으로 이동 - AI 챗봇 버튼과 겹침 방지)
@@ -1008,6 +1021,25 @@ watch(() => mapStore.routePath, (path) => {
 :deep(.hover-category) {
   font-size: 12px;
   font-weight: 600;
+}
+
+/* 모바일: 지도 가시 영역이 작아 220px 팝업이 화면을 가리므로 축소 */
+@media (max-width: 768px) {
+  :deep(.hover-pane) {
+    width: 148px;
+  }
+  :deep(.hover-image) {
+    height: 72px;
+  }
+  :deep(.hover-info) {
+    padding: 8px 10px;
+  }
+  :deep(.hover-title) {
+    font-size: 13px;
+  }
+  :deep(.hover-category) {
+    font-size: 11px;
+  }
 }
 
 /* 카카오맵이 CustomOverlay 콘텐츠를 감싸는 무명 래퍼 div가 마우스 이벤트를 가로채므로,
