@@ -11,10 +11,16 @@
             <div class="brand-subtitle">{{ $t('common.brand.tagline') }}</div>
           </div>
         </button>
-        <LangSwitcher />
+        <div class="header-actions">
+          <button class="theme-toggle-btn" @click="toggleTheme" aria-label="Toggle Theme">
+            <span v-if="isDark">🌙</span>
+            <span v-else>☀️</span>
+          </button>
+          <LangSwitcher />
+        </div>
       </div>
       <div class="search-row">
-        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2"/><line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" style="color: var(--text-secondary);" stroke-width="2"/><line x1="10.8" y1="10.8" x2="15" y2="15" stroke="currentColor" style="color: var(--text-secondary);" stroke-width="2" stroke-linecap="round"/></svg>
         <input
           class="search-input"
           :placeholder="$t('map.searchPlaceholder')"
@@ -66,8 +72,8 @@
 
           <!-- 중앙 장소 정보 -->
           <span class="place-info">
-            <span class="p-name">{{ loc.name }}</span>
-            <span class="p-addr">{{ loc.address }}</span>
+            <span class="p-name">{{ locale === 'en' ? loc.name_en || loc.name : loc.name }}</span>
+            <span class="p-addr">{{ locale === 'en' ? loc.address_en || loc.address : loc.address }}</span>
             <span class="p-posts">{{ $t('map.postCount', { count: loc.post_count || 0 }) }}</span>
           </span>
 
@@ -103,7 +109,16 @@ import LangSwitcher from '@/components/common/LangSwitcher.vue'
 
 const mapStore = useMapStore()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+const isDark = ref(document.documentElement.getAttribute('data-theme') === 'dark')
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  const newTheme = isDark.value ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', newTheme)
+  localStorage.setItem('theme', newTheme)
+}
 
 const catColors = {
   '관광지': '#f15b4c',
@@ -169,6 +184,8 @@ const observerTarget = ref(null)
 let observer = null
 
 onMounted(() => {
+  isDark.value = document.documentElement.getAttribute('data-theme') === 'dark'
+  
   if (mapStore.locations.length === 0) {
     mapStore.fetchLocations()
   }
@@ -197,7 +214,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #fff;
+  background: var(--surface);
   font-family: 'Pretendard', sans-serif;
 }
 
@@ -205,7 +222,7 @@ onUnmounted(() => {
 .header-section {
   padding: 16px 18px;
   flex: none;
-  border-bottom: 1px solid #eceae6;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .header-top-row {
@@ -213,6 +230,29 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--surface-hover);
 }
 
 .brand-row {
@@ -240,12 +280,12 @@ onUnmounted(() => {
   font-weight: 800;
   font-size: 16px;
   line-height: 1;
-  color: #1c1b1a;
+  color: var(--text-primary);
 }
 
 .brand-subtitle {
   font-size: 11px;
-  color: #a8a49b;
+  color: var(--text-muted);
   margin-top: 3px;
 }
 
@@ -253,7 +293,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   border-radius: 11px;
   padding: 10px 12px;
   margin-top: 13px;
@@ -265,7 +305,7 @@ onUnmounted(() => {
   outline: none;
   flex: 1;
   font-size: 14px;
-  color: #1c1b1a;
+  color: var(--text-primary);
   min-width: 0;
 }
 
@@ -275,7 +315,7 @@ onUnmounted(() => {
   height: 18px;
   border: none;
   border-radius: 50%;
-  background: #d8d5cd;
+  background: var(--border-input);
   color: #fff;
   font-size: 13px;
   line-height: 1;
@@ -287,7 +327,7 @@ onUnmounted(() => {
 }
 
 .search-clear-btn:hover {
-  background: #b0ada5;
+  background: var(--text-muted);
 }
 
 /* 리스트 컨테이너 */
@@ -302,13 +342,13 @@ onUnmounted(() => {
 .list-header {
   padding: 14px 16px 10px;
   flex: none;
-  border-bottom: 1px solid #f0eee9;
+  border-bottom: 1px solid var(--border-color);
   font-size: 13px;
-  color: #8a877f;
+  color: var(--text-secondary);
 }
 
 .list-header span {
-  color: #1c1b1a;
+  color: var(--text-primary);
   font-weight: 700;
 }
 
@@ -329,7 +369,7 @@ onUnmounted(() => {
   text-align: left;
   background: none;
   border: none;
-  border-bottom: 1px solid #f0eee9;
+  border-bottom: 1px solid var(--border-color);
   padding: 18px;
   cursor: pointer;
   align-items: stretch;
@@ -338,12 +378,12 @@ onUnmounted(() => {
 }
 
 .place-card:hover {
-  background: #faf9f6;
+  background: var(--surface-hover);
 }
 
 .selected-place {
-  background: #fffcfb !important;
-  border-left: 4px solid #f15b4c !important;
+  background: var(--surface-sunken) !important;
+  border-left: 4px solid var(--accent) !important;
   padding-left: 14px; /* border-left가 추가된 만큼 패딩 보정 */
 }
 
@@ -353,8 +393,8 @@ onUnmounted(() => {
   height: 132px;
   flex: none;
   border-radius: 13px;
-  background: repeating-linear-gradient(45deg, #e9e7e0, #e9e7e0 9px, #f2f1ec 9px, #f2f1ec 18px);
-  border: 1px solid #ece9e2;
+  background: repeating-linear-gradient(45deg, var(--surface-muted), var(--surface-muted) 9px, var(--surface-sunken) 9px, var(--surface-sunken) 18px);
+  border: 1px solid var(--border-hairline);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -377,15 +417,16 @@ onUnmounted(() => {
   margin-bottom: 10px;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10px;
-  color: #aaa69d;
+  color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
 /* 장소 정보 영역 */
 .place-info {
-  width: 150px;
-  flex: none;
-  min-width: 0;
+  /* 장소명·주소가 주 정보이므로 남는 폭을 갖고, 미리보기는 고정폭으로 양보
+     (150px 고정 시 넓은 패널에서도 제목·주소가 2~3줄로 과도하게 개행됨) */
+  flex: 1 1 auto;
+  min-width: 150px;
   display: flex;
   flex-direction: column;
 }
@@ -393,13 +434,13 @@ onUnmounted(() => {
 .p-name {
   font-weight: 800;
   font-size: 17px;
-  color: #1c1b1a;
+  color: var(--text-primary);
 }
 
 .p-addr {
   display: block;
   font-size: 12.5px;
-  color: #8a877f;
+  color: var(--text-secondary);
   margin-top: 7px;
   line-height: 1.45;
 }
@@ -407,13 +448,13 @@ onUnmounted(() => {
 .p-posts {
   display: block;
   font-size: 12px;
-  color: #b0ada5;
+  color: var(--text-muted);
   margin-top: auto;
 }
 
 /* 게시글 미리보기 영역 */
 .post-preview-area {
-  flex: 1 1 0;
+  flex: 0 0 190px;
   min-width: 0;
   display: flex;
   gap: 10px;
@@ -424,13 +465,13 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   height: 132px;
-  border: 1px dashed #e3e0d9;
+  border: 1px dashed var(--border-input);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12.5px;
-  color: #c2bfb7;
+  color: var(--text-muted);
   text-align: center;
   padding: 0 10px;
 }
@@ -440,12 +481,12 @@ onUnmounted(() => {
   flex: 1 1 0;
   min-width: 0;
   height: 132px;
-  border: 1px solid #eceae6;
+  border: 1px solid var(--border-hairline);
   border-radius: 12px;
   padding: 12px 13px;
   display: flex;
   flex-direction: column;
-  background: #fcfbf9;
+  background: var(--surface-card);
   overflow: hidden;
 }
 
@@ -453,7 +494,7 @@ onUnmounted(() => {
   font-weight: 700;
   font-size: 13px;
   line-height: 1.4;
-  color: #1c1b1a;
+  color: var(--text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -462,7 +503,7 @@ onUnmounted(() => {
 
 .pv-snippet {
   font-size: 12px;
-  color: #8a877f;
+  color: var(--text-secondary);
   margin-top: 7px;
   line-height: 1.5;
   display: -webkit-box;
@@ -473,7 +514,7 @@ onUnmounted(() => {
 
 .pv-comments {
   font-size: 11px;
-  color: #b0ada5;
+  color: var(--text-muted);
   margin-top: auto;
 }
 
@@ -495,7 +536,7 @@ onUnmounted(() => {
 .loading, .empty {
   text-align: center;
   padding: 40px 0;
-  color: #8a877f;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -506,6 +547,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #b0ada5;
+  color: var(--text-muted);
 }
 </style>

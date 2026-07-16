@@ -4,7 +4,9 @@
       <div class="chat-hint">{{ $t('chat.placeChatHint') }}</div>
 
       <template v-for="m in displayMessages" :key="m.id">
-        <div v-if="m.isSystem" class="system-row">{{ m.content }}</div>
+        <div v-if="m.isSystem" class="system-row">
+          {{ m.event === 'join' ? $t('chat.systemJoin', { nickname: m.nickname }) : $t('chat.systemLeave', { nickname: m.nickname }) }}
+        </div>
         <div v-else class="message-row" :class="{ mine: m.mine }">
           <span v-if="m.showName" class="author-label">{{ m.nickname }}</span>
           <span class="bubble">{{ m.content }}</span>
@@ -98,7 +100,7 @@ const handleSend = () => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: #f7f6f3;
+  background: var(--surface-sunken);
   padding: 16px 18px;
 }
 
@@ -135,7 +137,7 @@ const handleSend = () => {
 
 .bubble {
   max-width: 72%;
-  background: #fff;
+  background: var(--surface);
   color: var(--text-primary);
   padding: 9px 13px;
   border-radius: 15px;
@@ -156,14 +158,14 @@ const handleSend = () => {
   gap: 8px;
   padding: 12px;
   border-top: 1px solid var(--border-color);
-  background: #fff;
+  background: var(--surface);
   flex: none;
 }
 
 .place-chat-input {
   flex: 1;
   min-width: 0;
-  border: 1px solid #e3e0d9;
+  border: 1px solid var(--border-input);
   border-radius: 22px;
   padding: 11px 15px;
   font-size: 13.5px;
@@ -172,7 +174,7 @@ const handleSend = () => {
 }
 
 .place-chat-input:disabled {
-  background: #f7f6f3;
+  background: var(--surface-sunken);
   color: var(--text-muted);
 }
 

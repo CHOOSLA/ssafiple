@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # 챗봇(CHT) 설정
     OPENAI_MODEL: str = Field(default="gpt-5-mini")
     OPENAI_TIMEOUT: float = Field(default=60.0)
+    # i18n 번역용 모델 (장소 배치 번역 §C-1, UGC 온디맨드 번역 §C-2 공용)
+    OPENAI_TRANSLATE_MODEL: str = Field(default="gpt-4o-mini")
     # 요청 시 함께 전송할 최근 대화 턴 수 상한 (명세 §7 비용 제약)
     CHAT_HISTORY_TURNS: int = Field(default=6)
 

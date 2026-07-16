@@ -10,7 +10,13 @@
               <div class="brand-subtitle">{{ $t('common.brand.tagline') }}</div>
             </div>
           </button>
-          <LangSwitcher />
+          <div class="header-actions">
+            <button class="theme-toggle-btn" @click="toggleTheme" aria-label="Toggle Theme">
+              <span v-if="isDark">🌙</span>
+              <span v-else>☀️</span>
+            </button>
+            <LangSwitcher />
+          </div>
         </div>
         <div class="search-bar">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -77,11 +83,16 @@
           <div v-else class="post-list">
             <router-link v-for="post in filteredPosts" :key="post.id" :to="`/locations/${$route.params.location_id}/posts/${post.id}`" class="post-item">
               <span class="post-title">{{ post.title }}</span>
-              <p class="post-preview">{{ post.content }}</p>
+              <p class="post-preview">{{ postTranslationState[post.id]?.isTranslated ? postTranslationState[post.id].translatedText : post.content }}</p>
               <div class="post-meta">
                 <span>{{ post.author }}</span>
                 <span>{{ formatDate(post.created_at) }}</span>
                 <span>{{ $t('board.commentCountShort', { count: post.comments?.length || 0 }) }}</span>
+                <button type="button" class="translate-btn" @click.prevent="togglePostTranslation(post)" :disabled="postTranslationState[post.id]?.loading">
+                  <template v-if="postTranslationState[post.id]?.loading">...</template>
+                  <template v-else-if="postTranslationState[post.id]?.isTranslated">{{ locale === 'en' ? 'View Original' : '원문 보기' }}</template>
+                  <template v-else>{{ locale === 'en' ? 'View Translation' : '번역 보기' }}</template>
+                </button>
               </div>
             </router-link>
             <div v-if="filteredPosts.length === 0" class="empty-row">
@@ -202,10 +213,55 @@ const error = ref('')
 const searchQuery = ref('')
 const activeTab = ref('posts')
 
+const isDark = ref(document.documentElement.getAttribute('data-theme') === 'dark')
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  const newTheme = isDark.value ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', newTheme)
+  localStorage.setItem('theme', newTheme)
+}
+
+const postTranslationState = ref({})
+
+const togglePostTranslation = async (post) => {
+  const state = postTranslationState.value[post.id] || { isTranslated: false, translatedText: '', loading: false }
+  
+  if (state.isTranslated) {
+    postTranslationState.value[post.id] = { ...state, isTranslated: false }
+    return
+  }
+  if (state.translatedText) {
+    postTranslationState.value[post.id] = { ...state, isTranslated: true }
+    return
+  }
+  
+  postTranslationState.value[post.id] = { ...state, loading: true }
+  try {
+    const target_lang = locale.value === 'en' ? 'en' : 'ko'
+    const { data } = await api.post('/translate', {
+      text: post.content,
+      target_lang
+    })
+    postTranslationState.value[post.id] = {
+      loading: false,
+      isTranslated: true,
+      translatedText: data.translated
+    }
+  } catch (err) {
+    console.error('Translation error', err)
+    postTranslationState.value[post.id] = { ...state, loading: false }
+  }
+}
+
 // 스토어에서 선택된 장소 정보를 우선 표시하고, API로 받아온 상세 정보로 보강 (새로고침/직접 진입 대응)
 const location = ref(null)
 
-const placeName = computed(() => location.value?.name || mapStore.selectedLocation?.name || t('board.allPlaces'))
+const placeName = computed(() => {
+  const loc = location.value || mapStore.selectedLocation
+  if (!loc) return t('board.allPlaces')
+  return locale.value === 'en' ? loc.name_en || loc.name : loc.name
+})
 const placeCategory = computed(() => location.value?.category || mapStore.selectedLocation?.category || '')
 
 // 지도 마커 색상(카테고리별)과 동일한 팔레트 (style.css --cat-* 토큰 기준)
@@ -220,7 +276,11 @@ const CATEGORY_COLORS = {
   '여행코스': 'var(--cat-course)'
 }
 const placeCategoryColor = computed(() => CATEGORY_COLORS[placeCategory.value] || 'var(--cat-tour)')
-const placeAddress = computed(() => location.value?.address || mapStore.selectedLocation?.address || '')
+const placeAddress = computed(() => {
+  const loc = location.value || mapStore.selectedLocation
+  if (!loc) return ''
+  return locale.value === 'en' ? loc.address_en || loc.address : loc.address
+})
 
 // 상대경로(/uploads/...)일 수 있으므로 백엔드 origin 기준으로 풀어줌
 const placeImageUrl = computed(() => {
@@ -317,6 +377,7 @@ const fetchPosts = async () => {
 }
 
 onMounted(() => {
+  isDark.value = document.documentElement.getAttribute('data-theme') === 'dark'
   fetchLocation()
   fetchPosts()
 })
@@ -352,12 +413,12 @@ watch(
   min-height: 0;
   padding: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 239, 0.96));
+  background: var(--surface);
 }
 
 .panel-header {
   padding: 16px 18px 12px;
-  border-bottom: 1px solid #eceae6;
+  border-bottom: 1px solid var(--border-hairline);
   flex: none;
 }
 
@@ -366,6 +427,29 @@ watch(
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--surface-hover);
 }
 
 .brand-row {
@@ -404,7 +488,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   border-radius: 11px;
   padding: 10px 12px;
   margin-top: 13px;
@@ -445,7 +529,7 @@ watch(
   position: relative;
   height: 200px;
   flex: none;
-  background: repeating-linear-gradient(45deg, #e6e4dd, #e6e4dd 11px, #f0efea 11px, #f0efea 22px);
+  background: repeating-linear-gradient(45deg, var(--surface-muted), var(--surface-muted) 11px, var(--surface-sunken) 11px, var(--surface-sunken) 22px);
 }
 
 .hero-back {
@@ -455,7 +539,7 @@ watch(
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface);
   border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
   cursor: pointer;
@@ -478,14 +562,14 @@ watch(
   transform: translate(-50%, -50%);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
-  color: #aaa69d;
+  color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
 .place-info-bar {
   padding: 15px 16px 13px;
   flex: none;
-  border-bottom: 1px solid #f0eee9;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .place-name-row {
@@ -504,20 +588,20 @@ watch(
 .place-cat {
   font-size: 12px;
   font-weight: 700;
-  background: #f6f5f2;
+  background: var(--surface-muted);
   padding: 3px 9px;
   border-radius: 20px;
 }
 
 .place-address {
   margin-top: 9px;
-  color: #6b6864;
+  color: var(--text-secondary);
   font-size: 13.5px;
   line-height: 1.5;
 }
 
 .route-toolbar-btn {
-  background: #f4f2ee;
+  background: var(--surface-muted);
   color: var(--text-primary);
   border: none;
   border-radius: 10px;
@@ -544,7 +628,7 @@ watch(
 .route-mode-tabs {
   display: flex;
   gap: 8px;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   border-radius: 12px;
   padding: 4px;
 }
@@ -563,7 +647,7 @@ watch(
 }
 
 .route-mode-btn.active {
-  background: #fff;
+  background: var(--surface);
   color: var(--accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -621,8 +705,8 @@ watch(
   display: block;
   width: 100%;
   text-align: left;
-  background: #fff;
-  border: 1.5px solid #eceae6;
+  background: var(--surface);
+  border: 1.5px solid var(--border-hairline);
   border-radius: 14px;
   padding: 14px 16px;
   cursor: pointer;
@@ -630,7 +714,7 @@ watch(
 }
 
 .route-candidate-card:hover {
-  border-color: #ddd9d0;
+  border-color: var(--border-input);
 }
 
 .route-candidate-card.selected {
@@ -665,7 +749,7 @@ watch(
 .route-candidate-badge {
   margin-top: 10px;
   display: inline-block;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   color: var(--text-primary);
   font-size: 11.5px;
   font-weight: 700;
@@ -722,13 +806,13 @@ watch(
 
 .route-error {
   margin: 10px 0 0;
-  color: #d24b3d;
+  color: var(--danger-text);
   font-size: 12.5px;
 }
 
 .place-tabs {
   display: flex;
-  border-bottom: 1px solid #eceae6;
+  border-bottom: 1px solid var(--border-hairline);
   flex: none;
 }
 
@@ -794,7 +878,7 @@ watch(
   text-align: left;
   background: none;
   border: none;
-  border-bottom: 1px solid #f4f2ee;
+  border-bottom: 1px solid var(--border-hairline);
   padding: 15px 16px;
   cursor: pointer;
   color: inherit;
@@ -802,7 +886,7 @@ watch(
 }
 
 .post-item:hover {
-  background: #faf9f6;
+  background: var(--surface-hover);
 }
 
 .post-title {
@@ -817,7 +901,7 @@ watch(
   display: block;
   margin: 5px 0 0;
   font-size: 13px;
-  color: #6b6864;
+  color: var(--text-secondary);
   line-height: 1.55;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -833,6 +917,23 @@ watch(
   margin-top: 9px;
 }
 
+.translate-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+.translate-btn:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 .status-message {
   padding: 2rem 1rem;
   text-align: center;
@@ -840,7 +941,7 @@ watch(
 }
 
 .status-message.error {
-  color: #d24b3d;
+  color: var(--danger-text);
 }
 
 .empty-row {
@@ -857,5 +958,12 @@ watch(
   font-size: 12.5px;
   color: var(--text-muted);
   margin-top: 6px;
+}
+
+/* 모바일 하단 시트에서는 히어로가 세로 공간을 과하게 먹지 않도록 축소 */
+@media (max-width: 768px) {
+  .place-hero {
+    height: 140px;
+  }
 }
 </style>

@@ -24,6 +24,7 @@ def chat_with_ai(chat_req: ChatRequest, db: Session = Depends(get_db)):
             db,
             chat_req.message,
             chat_req.history,
+            chat_req.lang,
         )
     except openai.OpenAIError:
         traceback.print_exc()
@@ -68,7 +69,8 @@ async def chat_room(websocket: WebSocket, location_id: str):
     await websocket.send_json({"type": "self", "nickname": nickname})
     await manager.broadcast(location_id, {
         "type": "system",
-        "content": f"{nickname}님이 입장했습니다.",
+        "event": "join",
+        "nickname": nickname,
     })
 
     try:
@@ -95,5 +97,6 @@ async def chat_room(websocket: WebSocket, location_id: str):
         manager.disconnect(location_id, websocket)
         await manager.broadcast(location_id, {
             "type": "system",
-            "content": f"{nickname}님이 퇴장했습니다.",
+            "event": "leave",
+            "nickname": nickname,
         })

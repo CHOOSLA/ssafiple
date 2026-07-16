@@ -1,13 +1,17 @@
 <template>
-  <div class="app-root" @mousemove="onDrag" @mouseup="stopDrag" @mouseleave="stopDrag">
-    
+  <div class="app-root" :style="{ '--sheet-height': sheetHeight + '%' }" @mousemove="onDrag" @mouseup="stopDrag" @mouseleave="stopDrag">
+
     <!-- 우측 배경 (전체): 지도 영역 -->
     <div class="map-viewport">
       <KakaoMap />
     </div>
 
     <!-- 좌측 패널: 앱 라우터 뷰 -->
-    <div class="left-panel" :style="{ width: panelWidth + 'px' }">
+    <div class="left-panel" :class="{ 'sheet-dragging': isSheetDragging }" :style="{ width: panelWidth + 'px' }">
+      <!-- 모바일 바텀시트 그래버: 드래그로 시트 높이(30/60/90%) 조절 -->
+      <div class="sheet-grabber" @touchstart="startSheetDrag" @mousedown.prevent="startSheetDrag">
+        <div class="sheet-grabber-bar"></div>
+      </div>
       <!-- 라우터 뷰 안에 PlaceListPanel 등이 렌더링 됨 -->
       <router-view />
       
@@ -38,6 +42,32 @@ const MAX_WIDTH = 900
 const panelWidth = ref(DEFAULT_WIDTH)
 const isDragging = ref(false)
 
+// 모바일 바텀시트 높이(vh %). 그래버 드래그 후 가까운 스냅 지점에 정착
+const SHEET_SNAPS = [30, 60, 90]
+const sheetHeight = ref(60)
+const isSheetDragging = ref(false)
+
+const onSheetDrag = (e) => {
+  if (!isSheetDragging.value) return
+  const y = e.touches ? e.touches[0].clientY : e.clientY
+  const pct = ((window.innerHeight - y) / window.innerHeight) * 100
+  sheetHeight.value = Math.min(92, Math.max(15, pct))
+}
+
+const startSheetDrag = () => {
+  isSheetDragging.value = true
+}
+
+const stopSheetDrag = () => {
+  if (!isSheetDragging.value) return
+  isSheetDragging.value = false
+  const nearest = SHEET_SNAPS.reduce((a, b) =>
+    Math.abs(b - sheetHeight.value) < Math.abs(a - sheetHeight.value) ? b : a
+  )
+  sheetHeight.value = nearest
+  localStorage.setItem('localhub_sheet_height', String(nearest))
+}
+
 onMounted(() => {
   const savedWidth = localStorage.getItem('localhub_panel_width_v2')
   if (savedWidth) {
@@ -46,6 +76,24 @@ onMounted(() => {
       panelWidth.value = parsed
     }
   }
+
+  const savedSheet = parseInt(localStorage.getItem('localhub_sheet_height') || '', 10)
+  if (SHEET_SNAPS.includes(savedSheet)) {
+    sheetHeight.value = savedSheet
+  }
+
+  // 그래버에 touch-action: none이 걸려 있어 시트 드래그 중 페이지 스크롤과 충돌하지 않음
+  window.addEventListener('touchmove', onSheetDrag, { passive: true })
+  window.addEventListener('touchend', stopSheetDrag)
+  window.addEventListener('mousemove', onSheetDrag)
+  window.addEventListener('mouseup', stopSheetDrag)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('touchmove', onSheetDrag)
+  window.removeEventListener('touchend', stopSheetDrag)
+  window.removeEventListener('mousemove', onSheetDrag)
+  window.removeEventListener('mouseup', stopSheetDrag)
 })
 
 const startDrag = () => {
@@ -77,7 +125,7 @@ const stopDrag = () => {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--bg-color, #eef0ea), #f4f1ea);
+  background: var(--bg-color);
 }
 
 .map-viewport {
@@ -94,8 +142,8 @@ const stopDrag = () => {
   z-index: 20;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, rgba(255,255,255,0.97), rgba(243,239,232,0.95));
-  box-shadow: 2px 0 26px rgba(20, 20, 19, 0.16);
+  background: var(--surface);
+  box-shadow: 2px 0 26px rgba(0, 0, 0, 0.16);
   overflow-y: auto;
 }
 
@@ -116,7 +164,7 @@ const stopDrag = () => {
 .resizer-handle {
   width: 4px;
   height: 48px;
-  background-color: #d1cfc8; /* 기본적으로 잘 보이도록 명도 조절 */
+  background-color: var(--text-muted);
   border-radius: 4px;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -147,5 +195,66 @@ const stopDrag = () => {
   right: 24px;
   bottom: 24px;
   z-index: 40;
+}
+
+/*
+ * 모바일(≤768px): 좌/우 스플릿을 상/하 스플릿으로 전환.
+ * 지도는 뷰포트 상단 40%에 그대로 남고, 좌측 패널이 하단 60% 시트로 내려온다.
+ * 인라인으로 걸린 panelWidth(px)는 !important로 무력화 — 스크립트는 건드리지 않는다.
+ */
+/* 바텀시트 그래버는 데스크톱에서 숨김 */
+.sheet-grabber {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .left-panel {
+    width: 100% !important;
+    top: auto;
+    height: var(--sheet-height, 60%);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -6px 26px rgba(20, 20, 19, 0.16);
+    transition: height 0.25s ease;
+  }
+
+  /* 드래그 중에는 손가락을 즉각 따라가도록 스냅 애니메이션 해제 */
+  .left-panel.sheet-dragging {
+    transition: none;
+  }
+
+  /* 시트 상단 그래버 바: 드래그로 30/60/90% 조절. sticky로 스크롤에도 상단 고정 */
+  .sheet-grabber {
+    display: flex;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    padding: 10px 0 6px;
+    background: var(--surface);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .sheet-grabber-bar {
+    width: 44px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--text-muted);
+  }
+
+  /* 너비 드래그 리사이저는 상하 레이아웃에서 의미가 없어 숨김 */
+  .resizer {
+    display: none;
+  }
+
+  /* 시트 높이를 따라 패널 입력창(댓글·채팅)과 겹치지 않게 함 */
+  .chatbot-container {
+    right: 16px;
+    bottom: calc(var(--sheet-height, 60%) + 12px);
+    transition: bottom 0.25s ease;
+  }
 }
 </style>

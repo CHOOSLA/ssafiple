@@ -73,6 +73,8 @@ def list_locations(
             "longitude": loc.longitude,
             "image_url": loc.image_url,
             "description": loc.description,
+            "name_en": loc.name_en,
+            "address_en": loc.address_en,
             "post_count": count,
             "latest_posts": preview_list
         }

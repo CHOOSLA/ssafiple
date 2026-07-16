@@ -10,6 +10,7 @@ from app.schemas.directions import (
     TransitRouteCandidate,
     TransitDirectionsResponse,
 )
+from app.schemas.translation import TranslateRequest, TranslateResponse
 
 __all__ = [
     "LocationBase", "LocationCreate", "LocationOut",
@@ -18,4 +19,5 @@ __all__ = [
     "ChatMessage", "ChatRequest", "ChatResponse", "ChatWsIncoming", "ChatMessageOut",
     "RoutePoint", "CarRouteCandidate", "CarDirectionsResponse",
     "TransitSegment", "TransitRouteCandidate", "TransitDirectionsResponse",
+    "TranslateRequest", "TranslateResponse",
 ]

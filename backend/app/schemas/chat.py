@@ -11,6 +11,8 @@ class ChatRequest(BaseModel):
     # 빈 메시지는 422로 거절 (명세 FR-CHT-01 예외 처리)
     message: str = Field(min_length=1, max_length=500)
     history: List[ChatMessage] = []
+    # 응답 언어 (프론트 로케일). 장소 데이터·검색은 한국어 기준이지만 답변 언어만 전환
+    lang: Literal["ko", "en"] = "ko"
 
 class LocationBrief(BaseModel):
     """챗봇이 답변과 함께 추천하는 장소의 지도 연동용 요약 정보."""

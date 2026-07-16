@@ -2,8 +2,8 @@ import api from './index'
 
 // history: [{ role: 'user' | 'assistant', content: string }]
 // 반환값: { reply: string, locations: LocationBrief[] } — locations는 LLM이 답변에서 실제 언급한 장소
-export const postChat = async (message, history) => {
-  const { data } = await api.post('/chat', { message, history })
+export const postChat = async (message, history, lang = 'ko') => {
+  const { data } = await api.post('/chat', { message, history, lang })
   return { reply: data.reply, locations: data.locations || [] }
 }
 

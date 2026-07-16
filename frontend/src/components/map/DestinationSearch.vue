@@ -135,7 +135,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   border-radius: 11px;
   padding: 10px 12px;
 }
@@ -177,8 +177,8 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   z-index: 20;
-  background: #fff;
-  border: 1px solid #eceae6;
+  background: var(--surface);
+  border: 1px solid var(--border-hairline);
   border-radius: 12px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
   overflow: hidden;
@@ -224,8 +224,8 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   z-index: 20;
-  background: #fff;
-  border: 1px solid #eceae6;
+  background: var(--surface);
+  border: 1px solid var(--border-hairline);
   border-radius: 12px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
   padding: 14px;

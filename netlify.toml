@@ -11,3 +11,9 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# 서비스워커는 캐시하지 않음 — 새 버전 배포 시 즉시 갱신 보장
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

@@ -78,11 +78,13 @@ const optionStyle = (cat) => {
   position: absolute;
   top: 24px;
   z-index: 15; /* 좌측 패널(20)보다는 낮고, 지도 위 다른 플로팅 요소들과는 겹치지 않게 배치 */
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
-  border: 1px solid #eceae6;
+  background: var(--surface);
+  border: 1px solid var(--border-hairline);
   border-radius: 16px;
   padding: 6px;
   box-shadow: 0 4px 14px rgba(28, 27, 26, 0.12);
@@ -106,7 +108,7 @@ const optionStyle = (cat) => {
 }
 
 .cat-option:hover {
-  background: #f4f2ee;
+  background: var(--surface-muted);
   color: #1c1b1a;
 }
 
@@ -138,5 +140,15 @@ const optionStyle = (cat) => {
 .cat-all.active:hover {
   background: #f15b4c;
   color: #fff;
+}
+
+/* 모바일: 인라인 left(패널 너비 기준)가 100vw를 넘어 화면 밖으로 밀리므로 고정 배치로 무력화 */
+@media (max-width: 768px) {
+  .category-filter {
+    left: 12px !important;
+    right: 12px;
+    top: 12px;
+    max-width: none;
+  }
 }
 </style>
