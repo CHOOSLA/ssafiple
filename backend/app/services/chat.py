@@ -199,7 +199,7 @@ def build_context(locations: List[Location]) -> str:
 
 
 def generate_reply(
-    db: Session, message: str, history: List[ChatMessage]
+    db: Session, message: str, history: List[ChatMessage], lang: str = "ko"
 ) -> Tuple[str, List[Location]]:
     """대화 히스토리를 포함해 OpenAI에 질의하고 (답변 텍스트, 매칭된 장소 목록)을 반환합니다.
 
@@ -226,6 +226,16 @@ def generate_reply(
         "장소를 바로 나열하지 말고, 부족한 정보를 한 문장으로 짧게 되물어보세요. "
         "요청에 이미 구체적인 지역/카테고리/분위기가 충분히 담겨 있다면 바로 추천해도 됩니다."
     )
+
+    # EN 로케일 사용자에게는 답변만 영어로 전환 (볼드 장소명은 지도 매칭을 위해 한국어 원문 유지)
+    if lang == "en":
+        system_prompt = (
+            f"{system_prompt}\n\n"
+            "IMPORTANT: The user is using the English interface. Respond in natural English. "
+            "However, keep the **bold place names** exactly as they appear in [참고 데이터] "
+            "(in Korean) so the map linking still works — you may add an English gloss in "
+            "parentheses after the Korean name."
+        )
 
     context = build_context(retrieve_candidate_locations(db, query_text))
     if context:

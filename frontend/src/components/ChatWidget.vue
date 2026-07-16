@@ -89,13 +89,14 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChatStore } from '../stores/chat'
 
-// 표시 라벨은 언어별로 번역하되, 실제 AI에 전달되는 질의(query)는 백엔드 검색/RAG가
-// 한국어 데이터를 기준으로 동작하므로 항상 한국어 원문을 그대로 사용한다.
-const QUICK_ACTION_QUERIES = ['가볼 만한 곳 추천', '한강 근처 레포츠', '요즘 축제 있어?']
-
+// 추천 칩은 표시 라벨을 그대로 질의로 전송한다 — EN 모드에서는 영어 질문이 가고,
+// 백엔드가 lang 파라미터에 맞춰 영어로 답변한다 (장소 검색은 다국어 임베딩으로 동작).
 const { t, locale } = useI18n()
 const QUICK_ACTIONS = computed(() =>
-  QUICK_ACTION_QUERIES.map((query, idx) => ({ query, label: t(`chat.quickAction${idx + 1}`) }))
+  [1, 2, 3].map((idx) => {
+    const label = t(`chat.quickAction${idx}`)
+    return { query: label, label }
+  })
 )
 
 const chat = useChatStore()
@@ -144,7 +145,7 @@ const handleQuickAction = (query) => {
 .chat-panel {
   width: 360px;
   height: 520px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -184,7 +185,7 @@ const handleQuickAction = (query) => {
 }
 
 .close-btn:hover {
-  background: #f4f2ee;
+  background: var(--surface-muted);
 }
 
 .message-list {
@@ -229,7 +230,7 @@ const handleQuickAction = (query) => {
 
 .message-row.ai .bubble,
 .message-row.system .bubble {
-  background: #f4f2ee;
+  background: var(--surface-muted);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
@@ -244,7 +245,7 @@ const handleQuickAction = (query) => {
 
 .place-chip {
   white-space: nowrap;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--accent);
   color: var(--accent);
   border-radius: 16px;
@@ -294,7 +295,7 @@ const handleQuickAction = (query) => {
 .quick-chip {
   flex: none;
   white-space: nowrap;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   border: 1px solid #e8e5de;
   border-radius: 16px;
   padding: 6px 12px;
@@ -327,8 +328,8 @@ const handleQuickAction = (query) => {
 
 .input-rounded {
   width: 100%;
-  background: #fff;
-  border: 1px solid #e3e0d9;
+  background: var(--surface);
+  border: 1px solid var(--border-input);
   border-radius: 22px;
   padding: 12px 18px;
   font-size: 14.5px;
@@ -337,7 +338,7 @@ const handleQuickAction = (query) => {
 }
 
 .input-rounded:disabled {
-  background: #f7f6f3;
+  background: var(--surface-sunken);
   color: var(--text-muted);
 }
 

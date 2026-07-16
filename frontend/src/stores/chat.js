@@ -4,7 +4,7 @@ import { postChat } from '../api/chat'
 import { useMapStore } from './mapStore'
 import i18n from '../i18n'
 
-const { t } = i18n.global
+const { t, locale } = i18n.global
 
 // 언어 전환 시에도 즉시 갱신되도록, 고정 텍스트 대신 번역 키만 저장하고
 // 화면(ChatWidget.vue)에서 렌더링 시점에 $t()로 풀어낸다.
@@ -64,7 +64,7 @@ export const useChatStore = defineStore('chat', () => {
     addMessage('user', trimmed)
     setLoading(true)
     try {
-      const { reply, locations } = await postChat(trimmed, history)
+      const { reply, locations } = await postChat(trimmed, history, locale.value === 'en' ? 'en' : 'ko')
       addMessage('ai', reply, locations)
       if (locations.length > 0) {
         focusOnLocation(locations[0])
