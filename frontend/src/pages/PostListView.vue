@@ -153,7 +153,10 @@ const CATEGORY_COLORS = {
   '음식점': 'var(--cat-food)',
   '문화시설': 'var(--cat-culture)',
   '쇼핑': 'var(--cat-shopping)',
-  '숙박': 'var(--cat-stay)'
+  '숙박': 'var(--cat-stay)',
+  '레포츠': 'var(--cat-leports)',
+  '축제공연행사': 'var(--cat-festival)',
+  '여행코스': 'var(--cat-course)'
 }
 const placeCategoryColor = computed(() => CATEGORY_COLORS[placeCategory.value] || 'var(--cat-tour)')
 const placeAddress = computed(() => location.value?.address || mapStore.selectedLocation?.address || '')
