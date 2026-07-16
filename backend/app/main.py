@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -41,6 +42,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 응답 압축: 지도 이동마다 내려가는 장소 200건 JSON(수백 KB)이 주요 전송 비용이라
+# gzip으로 5~10배 축소 — 저사양 배포 환경에서 체감 속도에 직접 영향
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 # API 라우터 등록 (기능명세서 §4.1 규격에 맞춰 모든 엔드포인트를 /api 하위로 통일)
 app.include_router(posts.router, prefix="/api")

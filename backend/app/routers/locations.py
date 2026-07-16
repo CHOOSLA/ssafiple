@@ -43,25 +43,63 @@ def list_locations(
             ((Location.longitude - center_lng) * (Location.longitude - center_lng))
         )
         
+    from sqlalchemy import func
     from app.models import Post, Comment
 
     locs = query.offset(skip).limit(limit).all()
 
+    # N+1 제거: 기존에는 장소마다 글 카운트/최신글/댓글 카운트를 개별 조회해
+    # 요청 1건당 SQL이 최대 1,000개까지 발생했음 (지도 이동마다 반복 → 서버 과부하).
+    # 아래처럼 IN 절 배치 조회 3번으로 대체한다.
+    loc_ids = [str(loc.id) for loc in locs]
+
+    post_counts = {}
+    latest_by_loc = {}
+    comment_counts = {}
+    if loc_ids:
+        # ① 장소별 게시글 수
+        rows = (
+            db.query(Post.location_id, func.count(Post.id))
+            .filter(Post.location_id.in_(loc_ids), Post.is_deleted == False)
+            .group_by(Post.location_id)
+            .all()
+        )
+        post_counts = {loc_id: cnt for loc_id, cnt in rows}
+
+        # ② 장소별 최신 글 2건 — 대상 장소들의 글을 최신순으로 한 번에 가져와 파이썬에서 상위 2개만 취함
+        all_posts = (
+            db.query(Post)
+            .filter(Post.location_id.in_(loc_ids), Post.is_deleted == False)
+            .order_by(Post.created_at.desc())
+            .all()
+        )
+        preview_post_ids = []
+        for p in all_posts:
+            bucket = latest_by_loc.setdefault(p.location_id, [])
+            if len(bucket) < 2:
+                bucket.append(p)
+                preview_post_ids.append(p.id)
+
+        # ③ 미리보기 글들의 댓글 수
+        if preview_post_ids:
+            rows = (
+                db.query(Comment.post_id, func.count(Comment.id))
+                .filter(Comment.post_id.in_(preview_post_ids), Comment.is_deleted == False)
+                .group_by(Comment.post_id)
+                .all()
+            )
+            comment_counts = {post_id: cnt for post_id, cnt in rows}
+
     result = []
     for loc in locs:
-        post_query = db.query(Post).filter(Post.location_id == str(loc.id), Post.is_deleted == False)
-        count = post_query.count()
-        latest_posts = post_query.order_by(Post.created_at.desc()).limit(2).all()
-
         preview_list = []
-        for p in latest_posts:
-            comment_count = db.query(Comment).filter(Comment.post_id == p.id, Comment.is_deleted == False).count()
+        for p in latest_by_loc.get(str(loc.id), []):
             snippet = p.content[:44] + '…' if p.content and len(p.content) > 44 else (p.content or '')
             preview_list.append({
                 "id": p.id,
                 "title": p.title,
                 "snippet": snippet,
-                "comment_count": comment_count
+                "comment_count": comment_counts.get(p.id, 0)
             })
 
         loc_dict = {
@@ -75,7 +113,7 @@ def list_locations(
             "description": loc.description,
             "name_en": loc.name_en,
             "address_en": loc.address_en,
-            "post_count": count,
+            "post_count": post_counts.get(str(loc.id), 0),
             "latest_posts": preview_list
         }
         result.append(loc_dict)

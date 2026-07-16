@@ -58,6 +58,16 @@ def ensure_runtime_columns():
                 if column not in existing:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}"))
 
+        # 조회 성능 인덱스 (IF NOT EXISTS라 멱등):
+        # 지도 이동마다 도는 bbox·카테고리 필터와 게시글/댓글 집계가 풀스캔을 타지 않도록
+        for ddl in (
+            "CREATE INDEX IF NOT EXISTS idx_locations_lat_lng ON locations(latitude, longitude)",
+            "CREATE INDEX IF NOT EXISTS idx_locations_category ON locations(category)",
+            "CREATE INDEX IF NOT EXISTS idx_posts_location ON posts(location_id, is_deleted)",
+            "CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id, is_deleted)",
+        ):
+            conn.execute(text(ddl))
+
 # DB 세션 의존성 주입용 제너레이터
 def get_db():
     db = SessionLocal()
