@@ -423,10 +423,11 @@ onUnmounted(() => {
 
 /* 장소 정보 영역 */
 .place-info {
-  /* 장소명·주소가 주 정보이므로 남는 폭을 갖고, 미리보기는 고정폭으로 양보
-     (150px 고정 시 넓은 패널에서도 제목·주소가 2~3줄로 과도하게 개행됨) */
-  flex: 1 1 auto;
-  min-width: 150px;
+  /* 150px 고정일 때 제목·주소가 2~3줄로 감기던 문제 완화를 위해 170px로.
+     미리보기 박스는 남는 폭을 전부 가져가 원래 크기를 유지한다 */
+  width: 170px;
+  flex: none;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -454,7 +455,7 @@ onUnmounted(() => {
 
 /* 게시글 미리보기 영역 */
 .post-preview-area {
-  flex: 0 0 190px;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   gap: 10px;
