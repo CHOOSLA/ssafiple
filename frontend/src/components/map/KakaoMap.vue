@@ -680,30 +680,41 @@ watch(() => mapStore.selectedLocation, (loc) => {
     }
     
     // 오버레이 생성 및 표시
-    const color = catColors[loc.category] || '#f15b4c'
-    const imageUrl = loc.image_url || ''
-    const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">${t('map.noPhoto')}</div>`
-    const content = `
-      <div class="hover-pane">
-        ${imageTag}
-        <div class="hover-info">
-          <div class="hover-title">${locale.value === 'en' ? loc.name_en || loc.name : loc.name}</div>
-          <div class="hover-category" style="color: ${color}">${t(`common.category.${loc.category || '기타'}`)}</div>
-        </div>
-      </div>
-    `
     selectedOverlay = new window.kakao.maps.CustomOverlay({
-      content: content,
+      content: buildSelectedOverlayContent(loc),
       position: position,
       yAnchor: 1.3, // 핀과 적당한 간격
       zIndex: 1000
     })
     selectedOverlay.setMap(mapInstance.value)
-    
+
     // 선택된 마커의 텍스트 라벨 숨기기 및 이전 선택 라벨 복구 (updateNameLabels 재호출)
     updateNameLabels()
   }
 }, { immediate: true })
+
+// 선택 오버레이 HTML 조립 — locale에 따라 장소명/카테고리 문구가 달라짐
+const buildSelectedOverlayContent = (loc) => {
+  const color = catColors[loc.category] || '#f15b4c'
+  const imageUrl = loc.image_url || ''
+  const imageTag = imageUrl ? `<div class="hover-image" style="background-image: url('${imageUrl}')"></div>` : `<div class="hover-image no-img">${t('map.noPhoto')}</div>`
+  return `
+    <div class="hover-pane">
+      ${imageTag}
+      <div class="hover-info">
+        <div class="hover-title">${locale.value === 'en' ? loc.name_en || loc.name : loc.name}</div>
+        <div class="hover-category" style="color: ${color}">${t(`common.category.${loc.category || '기타'}`)}</div>
+      </div>
+    </div>
+  `
+}
+
+// 언어 전환 시 떠 있는 선택 오버레이 문구를 즉시 갱신 (생성 시점 HTML 고정 문제 해결)
+watch(locale, () => {
+  if (selectedOverlay && mapStore.selectedLocation) {
+    selectedOverlay.setContent(buildSelectedOverlayContent(mapStore.selectedLocation))
+  }
+})
 
 // 길찾기(경로 안내) 결과가 스토어에 채워지면 지도에 폴리라인으로 그리기
 watch(() => mapStore.routePath, (path) => {
@@ -784,11 +795,10 @@ watch(() => mapStore.routePath, (path) => {
 /* 플로팅 줌 안내 배너 CSS */
 .floating-zoom-warning {
   position: absolute;
-  top: 24px;
-  /* 화면이 왼쪽 패널(550px 고정)로 가려지므로, 우측 텅 빈 공간의 정확한 정중앙 좌표 설정 */
-  /* 550px + (100vw - 550px) / 2 = 50vw + 275px */
-  left: calc(50% + 275px); 
-  transform: translateX(-50%);
+  /* 카테고리 필터(top: 24px)와 같은 줄에 있으면 겹치므로 한 줄 아래 우측에 배치.
+     패널 너비가 동적(450~900px)이라 좌표 계산 대신 우측 고정이 안전하다 */
+  top: 80px;
+  right: 24px;
   background: rgba(28, 27, 26, 0.85); /* 다크 모드 풍의 반투명 배경 */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -818,6 +828,16 @@ watch(() => mapStore.routePath, (path) => {
 .floating-zoom-warning .text span {
   font-size: 12px;
   color: #d1cfc7;
+}
+
+/* 모바일: 지도 영역이 상단으로 줄어들므로 배너를 좌우 여백 기준 전폭으로 펼침 */
+@media (max-width: 768px) {
+  .floating-zoom-warning {
+    top: 60px;
+    left: 12px;
+    right: 12px;
+    padding: 10px 14px;
+  }
 }
 
 /* 뷰 트랜지션 (나타나고 사라질 때 부드럽게) */

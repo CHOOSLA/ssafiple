@@ -423,9 +423,10 @@ onUnmounted(() => {
 
 /* 장소 정보 영역 */
 .place-info {
-  width: 150px;
-  flex: none;
-  min-width: 0;
+  /* 장소명·주소가 주 정보이므로 남는 폭을 갖고, 미리보기는 고정폭으로 양보
+     (150px 고정 시 넓은 패널에서도 제목·주소가 2~3줄로 과도하게 개행됨) */
+  flex: 1 1 auto;
+  min-width: 150px;
   display: flex;
   flex-direction: column;
 }
@@ -453,7 +454,7 @@ onUnmounted(() => {
 
 /* 게시글 미리보기 영역 */
 .post-preview-area {
-  flex: 1 1 0;
+  flex: 0 0 190px;
   min-width: 0;
   display: flex;
   gap: 10px;
