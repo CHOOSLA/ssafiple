@@ -744,13 +744,15 @@ watch(() => mapStore.selectedLocation, (loc) => {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
     // 가려진 영역(데스크톱: 좌측 패널 / 모바일: 하단 시트) 기준 시각적 중앙으로 당겨오기
+    // 오버레이(말풍선)가 핀 위에 뜨므로, 핀을 가시 영역의 62% 지점(살짝 아래)으로 내려 상단 여백을 확보합니다.
     const panToVisualCenter = () => {
       const proj = mapInstance.value.getProjection()
       if (proj) {
         const offs = getObscuredOffsets()
+        const visibleHeight = window.innerHeight - offs.y
         let point = proj.pointFromCoords(position)
         point.x = point.x - (offs.x / 2)
-        point.y = point.y + (offs.y / 2)
+        point.y = point.y + (offs.y / 2) - (visibleHeight * 0.12)
         mapInstance.value.panTo(proj.coordsFromPoint(point))
       } else {
         mapInstance.value.panTo(position)
