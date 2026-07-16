@@ -475,12 +475,15 @@ const drawMarkers = (locations) => {
   if (!mapInstance.value || !window.kakao || !clustererInstance.value || !Array.isArray(locations)) return
 
   // 기존 핀(마커) 메모리에서 완전히 지우기 (버그 방지)
-  markers.forEach(m => m.setMap(null))
+  // 단, 선택 고정된 핀은 생존시켜 "지도를 더 확대해주세요"(레벨 7+ 전체 와이프)
+  // 상태에서도 선택한 장소가 계속 보이게 한다
+  const survivor = (pinnedMarker && mapStore.selectedLocation) ? pinnedMarker : null
+  markers.forEach(m => { if (m !== survivor) m.setMap(null) })
 
   // 기존 클러스터러 초기화
   clustererInstance.value.clear()
   markers = []
-  pinnedMarker = null // 이전 마커 인스턴스가 전부 폐기되므로 참조 해제 (재그리기 후 재고정)
+  pinnedMarker = survivor
   
   // 데이터 갱신 시(이동/확대 등) 기존에 남아있는 오버레이들 완벽 클린업
   nameLabelOverlays.forEach(item => item.overlay.setMap(null))
@@ -644,9 +647,17 @@ const drawMarkers = (locations) => {
   // 클러스터러에 마커들을 한 번에 추가
   clustererInstance.value.addMarkers(markers)
 
-  // 데이터 갱신으로 마커가 새로 만들어졌으니, 선택 중인 장소가 있으면 다시 고정
+  // 데이터 갱신으로 마커가 새로 만들어졌으니, 선택 중인 장소가 있으면 다시 고정.
+  // 새 목록에 선택 장소가 없으면(레벨 7+ 와이프 등) 생존시킨 옛 핀을 그대로 유지
   if (mapStore.selectedLocation) {
-    pinSelectedMarker(mapStore.selectedLocation)
+    const fresh = markers.find((m) => m.locData?.id === mapStore.selectedLocation.id)
+    if (fresh) {
+      if (pinnedMarker && pinnedMarker !== fresh) {
+        pinnedMarker.setMap(null) // 살아남았던 옛 인스턴스는 조용히 폐기
+        pinnedMarker = null
+      }
+      pinSelectedMarker(mapStore.selectedLocation)
+    }
   }
 
   // 방금 만든 라벨들에 대해 현재 줌 레벨 기준으로 표시 여부 초기 판별
@@ -671,8 +682,10 @@ let pinnedMarker = null
 const unpinSelectedMarker = () => {
   if (!pinnedMarker) return
   pinnedMarker.setZIndex(0)
-  if (clustererInstance.value) {
-    pinnedMarker.setMap(null)
+  pinnedMarker.setMap(null)
+  // 현재 데이터셋에 속한 마커만 클러스터러로 복귀 — 전체 와이프(레벨 7+) 후
+  // 살아남은 옛 인스턴스를 되돌리면 유령 핀이 생기므로 그냥 폐기
+  if (clustererInstance.value && markers.includes(pinnedMarker)) {
     clustererInstance.value.addMarker(pinnedMarker)
   }
   pinnedMarker = null
