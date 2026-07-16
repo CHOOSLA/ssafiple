@@ -82,7 +82,7 @@
           <div v-else-if="error" class="status-message error">{{ error }}</div>
           <div v-else class="post-list">
             <router-link v-for="post in filteredPosts" :key="post.id" :to="`/locations/${$route.params.location_id}/posts/${post.id}`" class="post-item">
-              <span class="post-title">{{ post.title }}</span>
+              <span class="post-title">{{ postTranslationState[post.id]?.isTranslated ? postTranslationState[post.id].translatedTitle : post.title }}</span>
               <p class="post-preview">{{ postTranslationState[post.id]?.isTranslated ? postTranslationState[post.id].translatedText : post.content }}</p>
               <div class="post-meta">
                 <span>{{ post.author }}</span>
@@ -239,14 +239,16 @@ const togglePostTranslation = async (post) => {
   postTranslationState.value[post.id] = { ...state, loading: true }
   try {
     const target_lang = locale.value === 'en' ? 'en' : 'ko'
-    const { data } = await api.post('/translate', {
-      text: post.content,
-      target_lang
-    })
+    // 제목·본문을 병렬 번역 (상세 화면과 동일 — 서버 캐시로 중복 비용 없음)
+    const [titleRes, contentRes] = await Promise.all([
+      api.post('/translate', { text: post.title, target_lang }),
+      api.post('/translate', { text: post.content, target_lang }),
+    ])
     postTranslationState.value[post.id] = {
       loading: false,
       isTranslated: true,
-      translatedText: data.translated
+      translatedTitle: titleRes.data.translated,
+      translatedText: contentRes.data.translated
     }
   } catch (err) {
     console.error('Translation error', err)
