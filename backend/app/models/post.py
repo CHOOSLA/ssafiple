@@ -23,4 +23,12 @@ class Post(Base):
         primaryjoin="and_(Post.id==Comment.post_id, Comment.is_deleted==False)",
         back_populates="post"
     )
+
+    # 게시글 다중 이미지 (표시 순서대로 정렬). image_url 컬럼은 대표(썸네일) 이미지로 계속 유지
+    images = relationship(
+        "PostImage",
+        order_by="PostImage.display_order",
+        cascade="all, delete-orphan",
+        back_populates="post"
+    )
  

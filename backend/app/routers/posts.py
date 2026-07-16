@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models import Post
+from app.models import Post, PostImage
 from app.schemas import PostCreate, PostUpdate, PostOut
 
 UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads"
@@ -31,15 +31,24 @@ def upload_image(file: UploadFile = File(...)):
 
 @router.post("/", response_model=PostOut, status_code=status.HTTP_201_CREATED)
 def create_post(post_in: PostCreate, db: Session = Depends(get_db)):
+    image_urls = [u for u in (post_in.image_urls or []) if u]
+    # 대표(썸네일) 이미지: image_url을 명시 안 했으면 다중 이미지의 첫 장을 사용
+    cover_image_url = post_in.image_url or (image_urls[0] if image_urls else None)
+
     db_post = Post(
         title=post_in.title,
         content=post_in.content,
         author=post_in.author,
         password=post_in.password,  # 평문 저장 (요구사항)
-        image_url=post_in.image_url,
+        image_url=cover_image_url,
         location_id=post_in.location_id
     )
     db.add(db_post)
+    db.flush()  # post_images의 post_id FK 확보용
+
+    for order, url in enumerate(image_urls):
+        db.add(PostImage(post_id=db_post.id, image_url=url, display_order=order))
+
     db.commit()
     db.refresh(db_post)
     return db_post
