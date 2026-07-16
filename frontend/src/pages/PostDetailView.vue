@@ -14,7 +14,7 @@
       <template v-else>
         <div class="post-content">
           <span class="pill">{{ $t('board.postLabel') }}</span>
-          <h1 class="post-title">{{ post.title }}</h1>
+          <h1 class="post-title">{{ isPostTranslated ? translatedPostTitle : post.title }}</h1>
           <div class="meta-info">
             <span>{{ $t('board.authorLabel', { author: post.author }) }}</span>
             <span>{{ formatDate(post.created_at) }}</span>
@@ -126,6 +126,7 @@ const commentPassword = ref('')
 const commentContent = ref('')
 
 const isPostTranslated = ref(false)
+const translatedPostTitle = ref('')
 const translatedPostContent = ref('')
 const isTranslatingPost = ref(false)
 
@@ -138,15 +139,17 @@ const togglePostTranslation = async () => {
     isPostTranslated.value = true
     return
   }
-  
+
   isTranslatingPost.value = true
   try {
     const target_lang = locale.value === 'en' ? 'en' : 'ko'
-    const { data } = await api.post('/translate', {
-      text: post.value.content,
-      target_lang
-    })
-    translatedPostContent.value = data.translated
+    // 제목·본문을 병렬로 번역 (백엔드 캐시 덕에 재요청 비용 없음)
+    const [titleRes, contentRes] = await Promise.all([
+      api.post('/translate', { text: post.value.title, target_lang }),
+      api.post('/translate', { text: post.value.content, target_lang }),
+    ])
+    translatedPostTitle.value = titleRes.data.translated
+    translatedPostContent.value = contentRes.data.translated
     isPostTranslated.value = true
   } catch (err) {
     console.error('Translation error', err)
@@ -446,7 +449,7 @@ onMounted(fetchPost)
   align-items: center;
   padding: 3px 9px;
   border-radius: 999px;
-  background: #f6f5f2;
+  background: var(--surface-muted);
   color: var(--accent);
   font-size: 12px;
   font-weight: 700;
@@ -477,7 +480,7 @@ onMounted(fetchPost)
 
 .section-divider {
   height: 8px;
-  background: #f6f5f2;
+  background: var(--surface-muted);
   margin-top: 14px;
 }
 
@@ -494,7 +497,7 @@ onMounted(fetchPost)
 
 .comment-item {
   padding: 12px 18px;
-  border-bottom: 1px solid #f4f2ee;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .comment-meta {
@@ -561,7 +564,7 @@ onMounted(fetchPost)
   gap: 8px;
   padding: 12px;
   border-top: 1px solid var(--border-color);
-  background: #fff;
+  background: var(--surface);
   flex: none;
 }
 
@@ -573,7 +576,7 @@ onMounted(fetchPost)
 .comment-input {
   flex: 1;
   min-width: 0;
-  border: 1px solid #e3e0d9;
+  border: 1px solid var(--border-input);
   border-radius: 11px;
   padding: 11px 13px;
   font-size: 13.5px;

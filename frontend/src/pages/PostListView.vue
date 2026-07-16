@@ -418,7 +418,7 @@ watch(
 
 .panel-header {
   padding: 16px 18px 12px;
-  border-bottom: 1px solid #eceae6;
+  border-bottom: 1px solid var(--border-hairline);
   flex: none;
 }
 
@@ -488,7 +488,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   border-radius: 11px;
   padding: 10px 12px;
   margin-top: 13px;
@@ -529,7 +529,7 @@ watch(
   position: relative;
   height: 200px;
   flex: none;
-  background: repeating-linear-gradient(45deg, #e6e4dd, #e6e4dd 11px, #f0efea 11px, #f0efea 22px);
+  background: repeating-linear-gradient(45deg, var(--surface-muted), var(--surface-muted) 11px, var(--surface-sunken) 11px, var(--surface-sunken) 22px);
 }
 
 .hero-back {
@@ -539,7 +539,7 @@ watch(
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface);
   border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
   cursor: pointer;
@@ -562,14 +562,14 @@ watch(
   transform: translate(-50%, -50%);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
-  color: #aaa69d;
+  color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
 .place-info-bar {
   padding: 15px 16px 13px;
   flex: none;
-  border-bottom: 1px solid #f0eee9;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .place-name-row {
@@ -588,20 +588,20 @@ watch(
 .place-cat {
   font-size: 12px;
   font-weight: 700;
-  background: #f6f5f2;
+  background: var(--surface-muted);
   padding: 3px 9px;
   border-radius: 20px;
 }
 
 .place-address {
   margin-top: 9px;
-  color: #6b6864;
+  color: var(--text-secondary);
   font-size: 13.5px;
   line-height: 1.5;
 }
 
 .route-toolbar-btn {
-  background: #f4f2ee;
+  background: var(--surface-muted);
   color: var(--text-primary);
   border: none;
   border-radius: 10px;
@@ -628,7 +628,7 @@ watch(
 .route-mode-tabs {
   display: flex;
   gap: 8px;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   border-radius: 12px;
   padding: 4px;
 }
@@ -647,7 +647,7 @@ watch(
 }
 
 .route-mode-btn.active {
-  background: #fff;
+  background: var(--surface);
   color: var(--accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -705,8 +705,8 @@ watch(
   display: block;
   width: 100%;
   text-align: left;
-  background: #fff;
-  border: 1.5px solid #eceae6;
+  background: var(--surface);
+  border: 1.5px solid var(--border-hairline);
   border-radius: 14px;
   padding: 14px 16px;
   cursor: pointer;
@@ -714,7 +714,7 @@ watch(
 }
 
 .route-candidate-card:hover {
-  border-color: #ddd9d0;
+  border-color: var(--border-input);
 }
 
 .route-candidate-card.selected {
@@ -749,7 +749,7 @@ watch(
 .route-candidate-badge {
   margin-top: 10px;
   display: inline-block;
-  background: #f4f2ee;
+  background: var(--surface-muted);
   color: var(--text-primary);
   font-size: 11.5px;
   font-weight: 700;
@@ -806,13 +806,13 @@ watch(
 
 .route-error {
   margin: 10px 0 0;
-  color: #d24b3d;
+  color: var(--danger-text);
   font-size: 12.5px;
 }
 
 .place-tabs {
   display: flex;
-  border-bottom: 1px solid #eceae6;
+  border-bottom: 1px solid var(--border-hairline);
   flex: none;
 }
 
@@ -878,7 +878,7 @@ watch(
   text-align: left;
   background: none;
   border: none;
-  border-bottom: 1px solid #f4f2ee;
+  border-bottom: 1px solid var(--border-hairline);
   padding: 15px 16px;
   cursor: pointer;
   color: inherit;
@@ -886,7 +886,7 @@ watch(
 }
 
 .post-item:hover {
-  background: #faf9f6;
+  background: var(--surface-hover);
 }
 
 .post-title {
@@ -901,7 +901,7 @@ watch(
   display: block;
   margin: 5px 0 0;
   font-size: 13px;
-  color: #6b6864;
+  color: var(--text-secondary);
   line-height: 1.55;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -941,7 +941,7 @@ watch(
 }
 
 .status-message.error {
-  color: #d24b3d;
+  color: var(--danger-text);
 }
 
 .empty-row {

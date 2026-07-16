@@ -278,7 +278,7 @@ onMounted(fetchPost)
   font-size: 13px;
   font-weight: 700;
   color: var(--text-secondary);
-  background: #f4f2ee;
+  background: var(--surface-muted);
   padding: 8px 14px;
   border-radius: 10px;
   cursor: pointer;
