@@ -474,6 +474,7 @@ onUnmounted(() => {
   color: var(--text-muted);
   text-align: center;
   padding: 0 10px;
+  white-space: nowrap; /* "첫 글을 남겨주세요"가 좁은 폭에서 어색하게 개행되지 않도록 */
 }
 
 /* 게시글 미리보기 카드 */

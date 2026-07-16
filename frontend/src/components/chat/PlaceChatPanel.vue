@@ -9,7 +9,18 @@
         </div>
         <div v-else class="message-row" :class="{ mine: m.mine }">
           <span v-if="m.showName" class="author-label">{{ m.nickname }}</span>
-          <span class="bubble">{{ m.content }}</span>
+          <span class="bubble">{{ translation[m.id]?.isOn ? translation[m.id].text : m.content }}</span>
+          <button
+            v-if="!m.mine"
+            type="button"
+            class="msg-translate"
+            :disabled="translation[m.id]?.loading"
+            @click="toggleTranslate(m)"
+          >
+            <template v-if="translation[m.id]?.loading">...</template>
+            <template v-else-if="translation[m.id]?.isOn">{{ locale === 'en' ? 'View Original' : '원문 보기' }}</template>
+            <template v-else>{{ locale === 'en' ? 'Translate' : '번역 보기' }}</template>
+          </button>
         </div>
       </template>
     </div>
@@ -34,7 +45,9 @@
 
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePlaceChatStore } from '@/stores/chatStore'
+import api from '@/api'
 
 const props = defineProps({
   locationId: {
@@ -44,8 +57,37 @@ const props = defineProps({
 })
 
 const chat = usePlaceChatStore()
+const { locale } = useI18n()
 const draft = ref('')
 const messageListEl = ref(null)
+
+// 말풍선별 온디맨드 번역 상태 — POST /api/translate 재사용 (서버 캐시로 재번역 방지)
+const translation = ref({})
+
+const toggleTranslate = async (m) => {
+  const cur = translation.value[m.id]
+  if (cur?.loading) return
+  if (cur?.isOn) {
+    translation.value[m.id] = { ...cur, isOn: false }
+    return
+  }
+  if (cur?.text) {
+    translation.value[m.id] = { ...cur, isOn: true }
+    return
+  }
+
+  translation.value[m.id] = { loading: true, isOn: false, text: '' }
+  try {
+    const { data } = await api.post('/translate', {
+      text: m.content,
+      target_lang: locale.value === 'en' ? 'en' : 'ko',
+    })
+    translation.value[m.id] = { loading: false, isOn: true, text: data.translated }
+  } catch (err) {
+    console.error('Chat translation error', err)
+    translation.value[m.id] = { loading: false, isOn: false, text: '' }
+  }
+}
 
 const displayMessages = computed(() => {
   let prevNickname = null
@@ -151,6 +193,22 @@ const handleSend = () => {
 .message-row.mine .bubble {
   background: var(--accent);
   color: #fff;
+}
+
+.msg-translate {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.msg-translate:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .input-area {
