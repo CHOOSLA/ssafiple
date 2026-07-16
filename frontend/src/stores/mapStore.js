@@ -1,6 +1,108 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import axios from 'axios'
 import api from '@/api'
+
+const ODSAY_TRANSIT_URL = 'https://api.odsay.com/v1/api/searchPubTransPathT'
+
+const getOdsayErrorMessage = (error) => {
+  if (!error) return ''
+  if (Array.isArray(error)) {
+    return error[0]?.message || error[0]?.msg || String(error[0] || '')
+  }
+  return error.message || error.msg || String(error)
+}
+
+const isValidRoutePoint = (point) => {
+  return Number.isFinite(point.lat)
+    && Number.isFinite(point.lng)
+    && point.lat >= 33
+    && point.lat <= 39
+    && point.lng >= 124
+    && point.lng <= 132
+}
+
+const createRoutePoint = (lng, lat) => {
+  const point = {
+    lat: Number(lat),
+    lng: Number(lng),
+  }
+  return isValidRoutePoint(point) ? point : null
+}
+
+const uniqueRoutePoints = (points) => {
+  const result = []
+  points.filter(Boolean).forEach((point) => {
+    const prev = result[result.length - 1]
+    if (!prev || prev.lat !== point.lat || prev.lng !== point.lng) {
+      result.push(point)
+    }
+  })
+  return result
+}
+
+const getTransitSegmentPath = (sub) => {
+  const points = [
+    createRoutePoint(sub.startX, sub.startY),
+    ...((sub.passStopList?.stations || []).map((station) => createRoutePoint(station.x, station.y))),
+    createRoutePoint(sub.endX, sub.endY),
+  ]
+  return uniqueRoutePoints(points)
+}
+
+const normalizeTransitDirections = (data) => {
+  const error = data?.error
+  if (error) {
+    throw new Error(getOdsayErrorMessage(error) || '대중교통 경로를 찾을 수 없습니다.')
+  }
+
+  const paths = (data?.result?.path || [])
+    .slice()
+    .sort((a, b) => (a.info?.totalTime || 0) - (b.info?.totalTime || 0))
+    .slice(0, 3)
+
+  if (!paths.length) {
+    throw new Error('대중교통 경로를 찾을 수 없습니다.')
+  }
+
+  return {
+    candidates: paths.map((path) => {
+      const info = path.info || {}
+      const segments = (path.subPath || []).map((sub) => {
+        let mode = 'walk'
+        let label = null
+
+        if (sub.trafficType === 1) {
+          mode = 'subway'
+          label = (sub.lane || [{}])[0]?.name || null
+        } else if (sub.trafficType === 2) {
+          mode = 'bus'
+          label = (sub.lane || [{}])[0]?.busNo || null
+        }
+
+        const segmentPath = getTransitSegmentPath(sub)
+
+        return {
+          mode,
+          label,
+          start_name: sub.startName || '',
+          end_name: sub.endName || '',
+          duration: (sub.sectionTime || 0) * 60,
+          distance: sub.distance || 0,
+          path: segmentPath,
+        }
+      }).filter((segment) => segment.path.length >= 2)
+
+      return {
+        duration: (info.totalTime || 0) * 60,
+        distance: info.totalDistance || 0,
+        transfer_count: (info.busTransitCount || 0) + (info.subwayTransitCount || 0),
+        walk_distance: info.totalWalk || 0,
+        segments,
+      }
+    }),
+  }
+}
 
 export const useMapStore = defineStore('map', () => {
   const locations = ref([])
@@ -104,6 +206,7 @@ export const useMapStore = defineStore('map', () => {
   // 자동차/대중교통 두 모드 각각 상위 경로 후보 리스트를 들고 있다가, 선택된 후보 하나를
   // routePath/routeSegments computed로 뽑아 지도(KakaoMap.vue)와 미니맵(RouteMiniMap.vue)에 넘긴다.
   const routeMode = ref('car') // 'car' | 'transit'
+  const routeOrigin = ref(null) // { lat, lng, name } | null
   const routeDestination = ref(null) // { lat, lng, name } | null
   const carCandidates = ref([])
   const transitCandidates = ref([])
@@ -148,24 +251,47 @@ export const useMapStore = defineStore('map', () => {
 
     try {
       const position = await getCurrentPosition()
-      const endpoint = routeMode.value === 'car' ? '/directions/car' : '/directions/transit'
-      const { data } = await api.get(endpoint, {
-        params: {
-          origin_lat: position.coords.latitude,
-          origin_lng: position.coords.longitude,
-          dest_lat: routeDestination.value.lat,
-          dest_lng: routeDestination.value.lng
-        }
-      })
+      routeOrigin.value = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        name: '출발지'
+      }
 
       if (routeMode.value === 'car') {
+        const { data } = await api.get('/directions/car', {
+          params: {
+            origin_lat: position.coords.latitude,
+            origin_lng: position.coords.longitude,
+            dest_lat: routeDestination.value.lat,
+            dest_lng: routeDestination.value.lng
+          }
+        })
         carCandidates.value = data.candidates
       } else {
-        transitCandidates.value = data.candidates
+        const apiKey = import.meta.env.VITE_ODSAY_API_KEY
+        if (!apiKey) {
+          throw new Error('VITE_ODSAY_API_KEY가 설정되지 않았습니다.')
+        }
+
+        const { data } = await axios.get(ODSAY_TRANSIT_URL, {
+          params: {
+            SX: position.coords.longitude,
+            SY: position.coords.latitude,
+            EX: routeDestination.value.lng,
+            EY: routeDestination.value.lat,
+            OPT: 0,
+            apiKey
+          },
+          timeout: 30000
+        })
+
+        const normalized = normalizeTransitDirections(data)
+        transitCandidates.value = normalized.candidates
       }
       selectedCandidateIndex.value = 0
     } catch (err) {
-      routeError.value = '경로를 찾을 수 없습니다.'
+      console.error('경로 조회 실패:', err)
+      routeError.value = err?.message || '경로를 찾을 수 없습니다.'
     } finally {
       routeLoading.value = false
     }
@@ -189,6 +315,7 @@ export const useMapStore = defineStore('map', () => {
   }
 
   const clearRoute = () => {
+    routeOrigin.value = null
     routeDestination.value = null
     carCandidates.value = []
     transitCandidates.value = []
@@ -212,6 +339,7 @@ export const useMapStore = defineStore('map', () => {
     setSearchQuery,
     setCategoryFilter,
     routeMode,
+    routeOrigin,
     routeDestination,
     carCandidates,
     transitCandidates,

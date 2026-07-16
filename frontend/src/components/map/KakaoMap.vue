@@ -52,8 +52,39 @@ let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 �
 let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
 let pendingLocations = null // 펼침 상태 중 도착한 새 장소 데이터 (원상복구 시점에 반영)
 let idleTimer = null // 맵 조작 이벤트 디바운싱용 타이머
-let routePolyline = null // 길찾기 경로 폴리라인
+let routePolylines = [] // 길찾기 경로 폴리라인
 let routeEndpointMarkers = [] // 길찾기 출발/도착 마커
+
+const routeLineStyles = {
+  car: { color: '#f15b4c', weight: 5, style: 'solid' },
+  walk: { color: '#8f9aa8', weight: 5, style: 'shortdash' },
+  bus: { color: '#22c55e', weight: 7, style: 'solid' },
+  subway: { color: '#2563eb', weight: 7, style: 'solid' },
+}
+
+const isValidRoutePoint = (point) => {
+  const lat = Number(point?.lat)
+  const lng = Number(point?.lng)
+  return Number.isFinite(lat)
+    && Number.isFinite(lng)
+    && lat >= 33
+    && lat <= 39
+    && lng >= 124
+    && lng <= 132
+}
+
+const toKakaoLinePath = (path) => {
+  return (path || [])
+    .filter(isValidRoutePoint)
+    .map(p => new window.kakao.maps.LatLng(Number(p.lat), Number(p.lng)))
+}
+
+const clearRouteOverlays = () => {
+  routePolylines.forEach(polyline => polyline.setMap(null))
+  routePolylines = []
+  routeEndpointMarkers.forEach(marker => marker.setMap(null))
+  routeEndpointMarkers = []
+}
 
 // 좌측 패널(App.vue의 .left-panel, 채팅 도메인 파일) 너비를 App.vue 수정 없이 추적하기 위한 상태.
 // 카테고리 필터 버튼의 좌측 위치 계산에만 사용 — 리사이즈 드래그에도 실시간으로 따라가도록 ResizeObserver 사용.
@@ -679,36 +710,59 @@ watch(() => mapStore.routePath, (path) => {
   if (!mapInstance.value) return
 
   // 이전 경로/마커 정리
-  if (routePolyline) {
-    routePolyline.setMap(null)
-    routePolyline = null
-  }
-  routeEndpointMarkers.forEach(m => m.setMap(null))
-  routeEndpointMarkers = []
+  clearRouteOverlays()
 
   if (!path || path.length === 0) return
 
-  const linePath = path.map(p => new window.kakao.maps.LatLng(p.lat, p.lng))
+  const allLinePoints = []
+  const segments = mapStore.routeMode === 'transit' ? mapStore.routeSegments : null
 
-  routePolyline = new window.kakao.maps.Polyline({
-    path: linePath,
-    strokeWeight: 5,
-    strokeColor: '#f15b4c',
-    strokeOpacity: 0.85,
-    strokeStyle: 'solid'
-  })
-  routePolyline.setMap(mapInstance.value)
+  if (segments?.length) {
+    segments.forEach((segment) => {
+      const linePath = toKakaoLinePath(segment.path)
+      if (linePath.length < 2) return
+
+      const style = routeLineStyles[segment.mode] || routeLineStyles.walk
+      const polyline = new window.kakao.maps.Polyline({
+        path: linePath,
+        strokeWeight: style.weight,
+        strokeColor: style.color,
+        strokeOpacity: 0.9,
+        strokeStyle: style.style
+      })
+      polyline.setMap(mapInstance.value)
+      routePolylines.push(polyline)
+      allLinePoints.push(...linePath)
+    })
+  } else {
+    const linePath = toKakaoLinePath(path)
+    if (linePath.length < 2) return
+
+    const style = routeLineStyles.car
+    const polyline = new window.kakao.maps.Polyline({
+      path: linePath,
+      strokeWeight: style.weight,
+      strokeColor: style.color,
+      strokeOpacity: 0.85,
+      strokeStyle: style.style
+    })
+    polyline.setMap(mapInstance.value)
+    routePolylines.push(polyline)
+    allLinePoints.push(...linePath)
+  }
+
+  if (allLinePoints.length < 2) return
 
   // 출발/도착 지점 마커 표시
-  const startMarker = new window.kakao.maps.Marker({ position: linePath[0] })
-  const endMarker = new window.kakao.maps.Marker({ position: linePath[linePath.length - 1] })
+  const startMarker = new window.kakao.maps.Marker({ position: allLinePoints[0] })
+  const endMarker = new window.kakao.maps.Marker({ position: allLinePoints[allLinePoints.length - 1] })
   startMarker.setMap(mapInstance.value)
   endMarker.setMap(mapInstance.value)
   routeEndpointMarkers = [startMarker, endMarker]
 
   // 경로 전체가 화면에 들어오도록 범위 조정
   const bounds = new window.kakao.maps.LatLngBounds()
-  linePath.forEach(pt => bounds.extend(pt))
+  allLinePoints.forEach(pt => bounds.extend(pt))
   mapInstance.value.setBounds(bounds)
 })
 </script>
