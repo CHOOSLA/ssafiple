@@ -32,9 +32,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import KakaoMap from '@/components/map/KakaoMap.vue'
 import ChatWidget from '@/components/ChatWidget.vue'
+import { useMapStore } from '@/stores/mapStore'
 
 // 기본 패널 너비를 내용물이 넉넉하게 보이도록 550px로 지정
 const DEFAULT_WIDTH = 550
@@ -43,6 +44,7 @@ const MAX_WIDTH = 900
 
 const panelWidth = ref(DEFAULT_WIDTH)
 const isDragging = ref(false)
+const mapStore = useMapStore()
 
 // 모바일 바텀시트 높이(vh %). 그래버 드래그 후 가까운 스냅 지점에 정착
 const SHEET_SNAPS = [30, 60, 90]
@@ -110,6 +112,16 @@ onMounted(() => {
   window.addEventListener('touchend', stopSheetDrag)
   window.addEventListener('mousemove', onSheetDrag)
   window.addEventListener('mouseup', stopSheetDrag)
+})
+
+// 모바일에서 시트를 90%까지 올린 채 목록의 장소를 누르면, 지도 띠(약 84px)가
+// 오버레이(122px)보다 작아 이동 결과가 시트에 가려 안 보인다.
+// 장소 선택 순간 시트를 60%로 내려 지도와 선택 핀이 보이도록 확보.
+watch(() => mapStore.selectedLocation, (loc) => {
+  if (loc && window.innerWidth <= 768 && sheetHeight.value > 60) {
+    sheetHeight.value = 60
+    localStorage.setItem('localhub_sheet_height', '60')
+  }
 })
 
 onUnmounted(() => {
