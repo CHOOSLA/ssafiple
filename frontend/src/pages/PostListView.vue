@@ -10,7 +10,13 @@
               <div class="brand-subtitle">{{ $t('common.brand.tagline') }}</div>
             </div>
           </button>
-          <LangSwitcher />
+          <div class="header-actions">
+            <button class="theme-toggle-btn" @click="toggleTheme" aria-label="Toggle Theme">
+              <span v-if="isDark">🌙</span>
+              <span v-else>☀️</span>
+            </button>
+            <LangSwitcher />
+          </div>
         </div>
         <div class="search-bar">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -77,11 +83,16 @@
           <div v-else class="post-list">
             <router-link v-for="post in filteredPosts" :key="post.id" :to="`/locations/${$route.params.location_id}/posts/${post.id}`" class="post-item">
               <span class="post-title">{{ post.title }}</span>
-              <p class="post-preview">{{ post.content }}</p>
+              <p class="post-preview">{{ postTranslationState[post.id]?.isTranslated ? postTranslationState[post.id].translatedText : post.content }}</p>
               <div class="post-meta">
                 <span>{{ post.author }}</span>
                 <span>{{ formatDate(post.created_at) }}</span>
                 <span>{{ $t('board.commentCountShort', { count: post.comments?.length || 0 }) }}</span>
+                <button type="button" class="translate-btn" @click.prevent="togglePostTranslation(post)" :disabled="postTranslationState[post.id]?.loading">
+                  <template v-if="postTranslationState[post.id]?.loading">...</template>
+                  <template v-else-if="postTranslationState[post.id]?.isTranslated">{{ locale === 'en' ? 'View Original' : '원문 보기' }}</template>
+                  <template v-else>{{ locale === 'en' ? 'View Translation' : '번역 보기' }}</template>
+                </button>
               </div>
             </router-link>
             <div v-if="filteredPosts.length === 0" class="empty-row">
@@ -202,6 +213,47 @@ const error = ref('')
 const searchQuery = ref('')
 const activeTab = ref('posts')
 
+const isDark = ref(document.documentElement.getAttribute('data-theme') === 'dark')
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  const newTheme = isDark.value ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', newTheme)
+  localStorage.setItem('theme', newTheme)
+}
+
+const postTranslationState = ref({})
+
+const togglePostTranslation = async (post) => {
+  const state = postTranslationState.value[post.id] || { isTranslated: false, translatedText: '', loading: false }
+  
+  if (state.isTranslated) {
+    postTranslationState.value[post.id] = { ...state, isTranslated: false }
+    return
+  }
+  if (state.translatedText) {
+    postTranslationState.value[post.id] = { ...state, isTranslated: true }
+    return
+  }
+  
+  postTranslationState.value[post.id] = { ...state, loading: true }
+  try {
+    const target_lang = locale.value === 'en' ? 'en' : 'ko'
+    const { data } = await api.post('/translate', {
+      text: post.content,
+      target_lang
+    })
+    postTranslationState.value[post.id] = {
+      loading: false,
+      isTranslated: true,
+      translatedText: data.translated
+    }
+  } catch (err) {
+    console.error('Translation error', err)
+    postTranslationState.value[post.id] = { ...state, loading: false }
+  }
+}
+
 // 스토어에서 선택된 장소 정보를 우선 표시하고, API로 받아온 상세 정보로 보강 (새로고침/직접 진입 대응)
 const location = ref(null)
 
@@ -317,6 +369,7 @@ const fetchPosts = async () => {
 }
 
 onMounted(() => {
+  isDark.value = document.documentElement.getAttribute('data-theme') === 'dark'
   fetchLocation()
   fetchPosts()
 })
@@ -366,6 +419,29 @@ watch(
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--surface-hover);
 }
 
 .brand-row {
@@ -831,6 +907,23 @@ watch(
   font-size: 11.5px;
   color: var(--text-muted);
   margin-top: 9px;
+}
+
+.translate-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+.translate-btn:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
 }
 
 .status-message {
