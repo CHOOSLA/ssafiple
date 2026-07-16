@@ -4,7 +4,7 @@
     <div v-if="chat.isOpen" class="chat-panel anim-pop">
       <div class="chat-header">
         <span class="chat-title">SSAFIPLE AI</span>
-        <button class="close-btn" type="button" aria-label="닫기" @click="chat.toggleOpen">
+        <button class="close-btn" type="button" :aria-label="$t('chat.closeAria')" @click="chat.toggleOpen">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
@@ -41,14 +41,14 @@
 
       <div class="quick-actions">
         <button
-          v-for="label in QUICK_ACTIONS"
-          :key="label"
+          v-for="action in QUICK_ACTIONS"
+          :key="action.query"
           type="button"
           class="quick-chip"
           :disabled="chat.isLoading"
-          @click="handleQuickAction(label)"
+          @click="handleQuickAction(action.query)"
         >
-          {{ label }}
+          {{ action.label }}
         </button>
       </div>
 
@@ -58,11 +58,11 @@
             v-model="draft"
             class="input-rounded"
             type="text"
-            placeholder="메시지를 입력하세요"
+            :placeholder="$t('chat.messagePlaceholder')"
             :disabled="chat.isLoading"
           />
         </div>
-        <button class="send-btn" type="submit" aria-label="전송" :disabled="chat.isLoading || !draft.trim()">
+        <button class="send-btn" type="submit" :aria-label="$t('chat.sendAria')" :disabled="chat.isLoading || !draft.trim()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
             <polygon points="4,3 22,12 4,21 4,14 15,12 4,10" />
           </svg>
@@ -71,7 +71,7 @@
     </div>
 
     <!-- 접힘: 플로팅 버튼 -->
-    <button v-else class="fab" type="button" aria-label="챗봇 열기" @click="chat.toggleOpen">
+    <button v-else class="fab" type="button" :aria-label="$t('chat.openAria')" @click="chat.toggleOpen">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path
           d="M4 4h16v11H8l-4 4V4z"
@@ -85,10 +85,18 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useChatStore } from '../stores/chat'
 
-const QUICK_ACTIONS = ['가볼 만한 곳 추천', '한강 근처 레포츠', '요즘 축제 있어?']
+// 표시 라벨은 언어별로 번역하되, 실제 AI에 전달되는 질의(query)는 백엔드 검색/RAG가
+// 한국어 데이터를 기준으로 동작하므로 항상 한국어 원문을 그대로 사용한다.
+const QUICK_ACTION_QUERIES = ['가볼 만한 곳 추천', '한강 근처 레포츠', '요즘 축제 있어?']
+
+const { t } = useI18n()
+const QUICK_ACTIONS = computed(() =>
+  QUICK_ACTION_QUERIES.map((query, idx) => ({ query, label: t(`chat.quickAction${idx + 1}`) }))
+)
 
 const chat = useChatStore()
 const draft = ref('')
@@ -113,9 +121,9 @@ const handleSend = async () => {
   await chat.sendMessage(text)
 }
 
-const handleQuickAction = (label) => {
+const handleQuickAction = (query) => {
   if (chat.isLoading) return
-  chat.sendMessage(label)
+  chat.sendMessage(query)
 }
 </script>
 
