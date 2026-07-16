@@ -316,18 +316,7 @@ const renderMap = () => {
     minLevel: 3,         // 더 확대해야 풀리도록(3레벨부터 클러스터링) 설정
     gridSize: 80,        // 기본값 60보다 반경을 넓혀서 더 많은 핀을 한 덩어리로 잘 묶게 만듦
     disableClickZoom: true, // 기본 줌인 기능을 끄고 수동으로 시각적 중앙을 맞춰 줌인할 예정
-    styles: [{
-      width: '40px', height: '40px',
-      background: 'rgba(241, 91, 76, 0.9)', /* var(--accent) 색상 */
-      borderRadius: '50%',
-      color: '#fff',
-      textAlign: 'center',
-      fontWeight: 'bold',
-      lineHeight: '40px',
-      fontSize: '14px',
-      boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
-      border: '2px solid #fff'
-    }]
+    styles: buildClusterStyles(catColors[mapStore.categoryFilter] || '#f15b4c')
   })
   
   // 클러스터링이 완료될 때마다 라벨을 갱신 (클러스터 밖으로 튕겨나온 낱개 핀만 라벨 표시)
@@ -451,15 +440,47 @@ const catColors = {
   '여행코스': '#c9a227'
 }
 
+// hex(#rrggbb) → rgba 문자열 (클러스터 반투명 배경용)
+const hexToRgba = (hex, alpha) => {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+}
+
+// 클러스터 마커 스타일 — 카테고리 필터 색상에 맞춰 배경만 달라짐
+const buildClusterStyles = (color) => [{
+  width: '40px', height: '40px',
+  background: hexToRgba(color, 0.9),
+  borderRadius: '50%',
+  color: '#fff',
+  textAlign: 'center',
+  fontWeight: 'bold',
+  lineHeight: '40px',
+  fontSize: '14px',
+  boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+  border: '2px solid #fff'
+}]
+
+// 카테고리 필터 전환 시 클러스터 색상을 해당 카테고리 색으로 갱신
+watch(() => mapStore.categoryFilter, (cat) => {
+  const clusterer = clustererInstance.value
+  if (!clusterer) return
+  const color = catColors[cat] || '#f15b4c'
+  if (typeof clusterer.setStyles === 'function') {
+    clusterer.setStyles(buildClusterStyles(color))
+    if (typeof clusterer.redraw === 'function') clusterer.redraw()
+  }
+})
+
 const drawMarkers = (locations) => {
   if (!mapInstance.value || !window.kakao || !clustererInstance.value || !Array.isArray(locations)) return
 
   // 기존 핀(마커) 메모리에서 완전히 지우기 (버그 방지)
   markers.forEach(m => m.setMap(null))
-  
+
   // 기존 클러스터러 초기화
   clustererInstance.value.clear()
   markers = []
+  pinnedMarker = null // 이전 마커 인스턴스가 전부 폐기되므로 참조 해제 (재그리기 후 재고정)
   
   // 데이터 갱신 시(이동/확대 등) 기존에 남아있는 오버레이들 완벽 클린업
   nameLabelOverlays.forEach(item => item.overlay.setMap(null))
@@ -622,7 +643,12 @@ const drawMarkers = (locations) => {
 
   // 클러스터러에 마커들을 한 번에 추가
   clustererInstance.value.addMarkers(markers)
-  
+
+  // 데이터 갱신으로 마커가 새로 만들어졌으니, 선택 중인 장소가 있으면 다시 고정
+  if (mapStore.selectedLocation) {
+    pinSelectedMarker(mapStore.selectedLocation)
+  }
+
   // 방금 만든 라벨들에 대해 현재 줌 레벨 기준으로 표시 여부 초기 판별
   updateNameLabels()
 }
@@ -638,13 +664,42 @@ watch(() => mapStore.locations, (newLocations) => {
   drawMarkers(newLocations)
 }, { deep: true })
 
+// 선택된 장소 마커는 클러스터러에서 분리해 지도에 직접 표시 — 축소로 주변 핀이
+// 클러스터에 흡수되어도 선택한 핀은 항상 보이게 유지
+let pinnedMarker = null
+
+const unpinSelectedMarker = () => {
+  if (!pinnedMarker) return
+  pinnedMarker.setZIndex(0)
+  if (clustererInstance.value) {
+    pinnedMarker.setMap(null)
+    clustererInstance.value.addMarker(pinnedMarker)
+  }
+  pinnedMarker = null
+}
+
+const pinSelectedMarker = (loc) => {
+  unpinSelectedMarker()
+  if (!loc || !clustererInstance.value || !mapInstance.value) return
+  const marker = markers.find((m) => m.locData?.id === loc.id)
+  if (!marker) return
+  clustererInstance.value.removeMarker(marker)
+  marker.setMap(mapInstance.value)
+  marker.setZIndex(200)
+  pinnedMarker = marker
+}
+
 // 왼쪽 목록 등에서 장소 선택 시 지도 중심 부드럽게 이동 및 오버레이 띄우기
 watch(() => mapStore.selectedLocation, (loc) => {
   if (selectedOverlay) {
     selectedOverlay.setMap(null)
     selectedOverlay = null
   }
-  
+
+  if (!loc) {
+    unpinSelectedMarker()
+  }
+
   if (loc && loc.latitude && loc.longitude && mapInstance.value) {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
@@ -687,6 +742,9 @@ watch(() => mapStore.selectedLocation, (loc) => {
       zIndex: 1000
     })
     selectedOverlay.setMap(mapInstance.value)
+
+    // 선택된 핀을 클러스터에서 분리해 항상 표시
+    pinSelectedMarker(loc)
 
     // 선택된 마커의 텍스트 라벨 숨기기 및 이전 선택 라벨 복구 (updateNameLabels 재호출)
     updateNameLabels()

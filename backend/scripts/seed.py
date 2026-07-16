@@ -63,7 +63,8 @@ def load_json_files(raw_dir):
                                     "address": address.strip() if address else None,
                                     "latitude": latitude,
                                     "longitude": longitude,
-                                    "image_url": image_url.strip() if image_url else None,
+                                    # HTTPS 배포에서 Mixed Content 경고를 막기 위해 http 이미지 URL은 https로 승격
+                                    "image_url": image_url.strip().replace("http://", "https://", 1) if image_url else None,
                                     "description": description.strip() if description else None
                                 })
                             except (ValueError, AssertionError) as e:
