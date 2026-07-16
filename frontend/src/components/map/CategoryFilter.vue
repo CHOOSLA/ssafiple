@@ -1,6 +1,7 @@
 <template>
   <div
     class="category-filter"
+    :class="{ 'is-collapsed': isCollapsed }"
     :style="{ left: left + 'px' }"
     role="group"
     :aria-label="$t('map.categoryFilterAria')"
@@ -9,9 +10,12 @@
       type="button"
       class="cat-option cat-all"
       :class="{ active: !selected }"
-      @click="$emit('select', null)"
+      @click="handleSelect(null)"
     >
       {{ $t('map.categoryAll') }}
+      <span v-if="isCollapsed && !selected" class="toggle-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </span>
     </button>
 
     <button
@@ -21,14 +25,19 @@
       class="cat-option"
       :class="{ active: selected === cat }"
       :style="optionStyle(cat)"
-      @click="$emit('select', cat)"
+      @click="handleSelect(cat)"
     >
       {{ $t(`common.category.${cat}`) }}
+      <span v-if="isCollapsed && selected === cat" class="toggle-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </span>
     </button>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+
 defineProps({
   // 현재 지도 뷰포트 기준 좌측 여백(px). 좌측 패널 너비를 따라 갱신됨.
   left: {
@@ -40,7 +49,37 @@ defineProps({
     default: null
   }
 })
-defineEmits(['select'])
+const emit = defineEmits(['select'])
+
+const isCollapsed = ref(window.innerWidth <= 768)
+
+const handleSelect = (cat) => {
+  // 모바일 접힌 상태일 때 현재 액티브 버튼을 누르면 펼치기
+  if (window.innerWidth <= 768 && isCollapsed.value) {
+    isCollapsed.value = false
+    return
+  }
+  
+  emit('select', cat)
+  
+  // 모바일에서는 카테고리 선택 후 자동으로 다시 접음
+  if (window.innerWidth <= 768) {
+    isCollapsed.value = true
+  }
+}
+
+const handleResize = () => {
+  if (window.innerWidth > 768) {
+    isCollapsed.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 // 카테고리별 컬러 매핑 (KakaoMap.vue / PlaceListPanel.vue와 동일한 디자인 명세 값)
 const catColors = {
@@ -142,6 +181,12 @@ const optionStyle = (cat) => {
   color: #fff;
 }
 
+.toggle-icon {
+  margin-left: 4px;
+  vertical-align: middle;
+  display: inline-flex;
+}
+
 /* 모바일: 인라인 left(패널 너비 기준)가 100vw를 넘어 화면 밖으로 밀리므로 고정 배치로 무력화 */
 @media (max-width: 768px) {
   .category-filter {
@@ -149,6 +194,14 @@ const optionStyle = (cat) => {
     right: 12px;
     top: 12px;
     max-width: none;
+    flex-wrap: wrap; /* 펼쳐졌을 때 줄바꿈 허용 */
+  }
+  .category-filter.is-collapsed {
+    right: auto; /* 접혔을 때 전체 너비를 차지하지 않음 */
+    max-width: max-content;
+  }
+  .category-filter.is-collapsed .cat-option:not(.active) {
+    display: none;
   }
 }
 </style>
