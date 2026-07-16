@@ -2,20 +2,23 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { postChat } from '../api/chat'
 import { useMapStore } from './mapStore'
+import i18n from '../i18n'
 
-const INITIAL_MESSAGE = {
+const { t } = i18n.global
+
+// 언어 전환 시에도 즉시 갱신되도록, 고정 텍스트 대신 번역 키만 저장하고
+// 화면(ChatWidget.vue)에서 렌더링 시점에 $t()로 풀어낸다.
+const buildInitialMessage = () => ({
   id: 1,
   sender: 'system',
-  text:
-    '안녕하세요! SSAFIPLE AI 여행 비서입니다. 서울의 관광지, 문화시설, 숙박, 쇼핑, 레포츠, 축제/공연, 여행코스 정보를 안내해 드려요. ' +
-    '어떤 지역에서 어떤 종류의 장소를 찾고 계신가요?'
-}
+  textKey: 'chat.welcomeMessage'
+})
 
 // API로 전송할 히스토리에 포함할 최근 메시지 수 (user+assistant 합산 상한)
 const MAX_HISTORY_MESSAGES = 12
 
 export const useChatStore = defineStore('chat', () => {
-  const messages = ref([{ ...INITIAL_MESSAGE }])
+  const messages = ref([buildInitialMessage()])
   const isLoading = ref(false)
   const isOpen = ref(false)
 
@@ -41,7 +44,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const clearMessages = () => {
-    messages.value = [{ ...INITIAL_MESSAGE }]
+    messages.value = [buildInitialMessage()]
   }
 
   const toggleOpen = () => {
@@ -67,7 +70,7 @@ export const useChatStore = defineStore('chat', () => {
         focusOnLocation(locations[0])
       }
     } catch (err) {
-      addMessage('system', '죄송합니다, 답변을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      addMessage('system', t('chat.replyError'))
     } finally {
       setLoading(false)
     }

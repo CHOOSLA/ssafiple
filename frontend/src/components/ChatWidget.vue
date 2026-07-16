@@ -18,7 +18,7 @@
           class="message-row"
           :class="m.sender"
         >
-          <div class="bubble">{{ m.text }}</div>
+          <div class="bubble">{{ m.textKey ? $t(m.textKey) : m.text }}</div>
           <div v-if="m.locations && m.locations.length" class="place-chips">
             <button
               v-for="loc in m.locations"
