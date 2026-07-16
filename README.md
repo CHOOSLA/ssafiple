@@ -1,5 +1,6 @@
 <p align="center">
   <img src="docs/logo/ssafiple-logo-192.png" alt="SSAFIPLE 로고" width="120" />
+  웹사이트 -> https://ssafiple.netlify.app/
 </p>
 
 <h1 align="center">SSAFIPLE</h1>
