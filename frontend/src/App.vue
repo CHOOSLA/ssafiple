@@ -9,7 +9,9 @@
     <!-- 좌측 패널: 앱 라우터 뷰 -->
     <div class="left-panel" :class="{ 'sheet-dragging': isSheetDragging }" :style="{ width: panelWidth + 'px' }">
       <!-- 모바일 바텀시트 그래버: 드래그로 시트 높이(30/60/90%) 조절 -->
-      <div class="sheet-grabber" @touchstart="startSheetDrag" @mousedown.prevent="startSheetDrag">
+      <!-- touchstart.prevent: 터치 후 브라우저가 합성하는 mousedown이 드래그를
+           한 번 더 트리거해 탭이 두 단계씩 건너뛰는 것을 방지 -->
+      <div class="sheet-grabber" @touchstart.prevent="startSheetDrag" @mousedown.prevent="startSheetDrag">
         <div class="sheet-grabber-bar"></div>
       </div>
       <!-- 라우터 뷰 안에 PlaceListPanel 등이 렌더링 됨 -->
@@ -47,25 +49,46 @@ const SHEET_SNAPS = [30, 60, 90]
 const sheetHeight = ref(60)
 const isSheetDragging = ref(false)
 
+let sheetDragStartY = null
+let sheetDragMoved = false
+
 const onSheetDrag = (e) => {
   if (!isSheetDragging.value) return
   const y = e.touches ? e.touches[0].clientY : e.clientY
+  if (sheetDragStartY !== null && Math.abs(y - sheetDragStartY) > 6) {
+    sheetDragMoved = true
+  }
   const pct = ((window.innerHeight - y) / window.innerHeight) * 100
   sheetHeight.value = Math.min(92, Math.max(15, pct))
 }
 
-const startSheetDrag = () => {
+const startSheetDrag = (e) => {
   isSheetDragging.value = true
+  sheetDragStartY = e.touches ? e.touches[0].clientY : e.clientY
+  sheetDragMoved = false
 }
 
 const stopSheetDrag = () => {
   if (!isSheetDragging.value) return
   isSheetDragging.value = false
-  const nearest = SHEET_SNAPS.reduce((a, b) =>
-    Math.abs(b - sheetHeight.value) < Math.abs(a - sheetHeight.value) ? b : a
-  )
-  sheetHeight.value = nearest
-  localStorage.setItem('localhub_sheet_height', String(nearest))
+
+  let next
+  if (!sheetDragMoved) {
+    // 드래그 없이 탭만 한 경우: 다음 스냅 단계로 순환 (30 → 60 → 90 → 30)
+    const idx = SHEET_SNAPS.indexOf(
+      SHEET_SNAPS.reduce((a, b) =>
+        Math.abs(b - sheetHeight.value) < Math.abs(a - sheetHeight.value) ? b : a
+      )
+    )
+    next = SHEET_SNAPS[(idx + 1) % SHEET_SNAPS.length]
+  } else {
+    next = SHEET_SNAPS.reduce((a, b) =>
+      Math.abs(b - sheetHeight.value) < Math.abs(a - sheetHeight.value) ? b : a
+    )
+  }
+  sheetHeight.value = next
+  sheetDragStartY = null
+  localStorage.setItem('localhub_sheet_height', String(next))
 }
 
 onMounted(() => {
@@ -223,14 +246,18 @@ const stopDrag = () => {
     transition: none;
   }
 
-  /* 시트 상단 그래버 바: 드래그로 30/60/90% 조절. sticky로 스크롤에도 상단 고정 */
+  /* 시트 상단 그래버: 드래그로 30/60/90% 조절, 탭하면 다음 단계로 전환.
+     sticky로 스크롤에도 상단 고정. 스와이프가 목록 스크롤에 먹히지 않도록
+     히트 영역을 전폭·두껍게 확보 */
   .sheet-grabber {
     display: flex;
     justify-content: center;
+    align-items: center;
     position: sticky;
     top: 0;
     z-index: 60;
-    padding: 10px 0 6px;
+    min-height: 30px;
+    padding: 8px 0;
     background: var(--surface);
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
@@ -239,8 +266,8 @@ const stopDrag = () => {
   }
 
   .sheet-grabber-bar {
-    width: 44px;
-    height: 5px;
+    width: 56px;
+    height: 6px;
     border-radius: 3px;
     background: var(--text-muted);
   }
