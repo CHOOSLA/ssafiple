@@ -95,17 +95,13 @@ export const useMapStore = defineStore('map', () => {
   const routeLoading = ref(false)
   const routeError = ref('')
 
+  // 부트캠프 시연용 고정 출발지 (서울 강남구 테헤란로 212 인근).
+  // 실사용자 대상 서비스가 아니라 발표 데모 환경이라, 발표 중 위치 권한 팝업/부정확한
+  // 네트워크 기반 위치 추정에 흔들리지 않도록 브라우저 Geolocation 대신 고정 좌표를 사용한다.
+  const DEMO_ORIGIN = { latitude: 37.5012746, longitude: 127.0395857 }
+
   const getCurrentPosition = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('이 브라우저는 위치 정보를 지원하지 않습니다.'))
-        return
-      }
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: false,
-        timeout: 8000
-      })
-    })
+    return Promise.resolve({ coords: DEMO_ORIGIN })
   }
 
   const fetchDirections = async (destLat, destLng) => {
