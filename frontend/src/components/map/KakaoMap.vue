@@ -50,6 +50,7 @@ let selectedOverlay = null // 선택된 장소 고정 오버레이
 let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
 let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
+let pendingLocations = null // 펼침 상태 중 도착한 새 장소 데이터 (원상복구 시점에 반영)
 let idleTimer = null // 맵 조작 이벤트 디바운싱용 타이머
 let routePolyline = null // 길찾기 경로 폴리라인
 let routeEndpointMarkers = [] // 길찾기 출발/도착 마커
@@ -187,12 +188,20 @@ const resetSpiderfiedMarkers = () => {
   spiderfiedMarkers.forEach(m => {
     animateMarkerTo(m, m.getPosition(), m.originalPosition, 200)
     m.isSpiderfied = false
-    
+
     // 원상복구 시 z-index 되돌리기
     m.setZIndex(0)
     if (m.nameLabelRef) m.nameLabelRef.setZIndex(900)
   })
   spiderfiedMarkers = []
+
+  // 펼침 도중 도착해서 보류해 둔 장소 데이터가 있으면 이제 반영
+  // (drawMarkers 내부에서 이 함수가 다시 불려도 pendingLocations는 이미 null이라 재귀되지 않음)
+  if (pendingLocations) {
+    const locs = pendingLocations
+    pendingLocations = null
+    drawMarkers(locs)
+  }
 }
 
 onMounted(() => {
@@ -589,6 +598,12 @@ const drawMarkers = (locations) => {
 
 // 스토어의 데이터 변경 감지 (검색, 필터링 등)
 watch(() => mapStore.locations, (newLocations) => {
+  // 핀이 방사형으로 펼쳐진(spiderfied) 도중에 재그리기가 끼어들면 펼침이 즉시 초기화됨
+  // (idle 디바운스 + API 지연으로 뒤늦게 도착한 응답이 대표 케이스) — 원상복구 시점까지 보류
+  if (spiderfiedMarkers.length > 0) {
+    pendingLocations = newLocations
+    return
+  }
   drawMarkers(newLocations)
 }, { deep: true })
 
