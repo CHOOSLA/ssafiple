@@ -78,6 +78,8 @@ button, input, textarea {
 
 button, input, textarea, select {
   font-family: inherit;
+  /* UA 기본 버튼 색(검정)이 다크테마를 무시하므로 주변 텍스트 색을 상속 */
+  color: inherit;
 }
 
 input::placeholder, textarea::placeholder {

@@ -476,6 +476,8 @@ watch(
 .brand-title {
   font-weight: 800;
   font-size: 16px;
+  /* button 요소는 색을 상속하지 않아(UA 기본 검정) 다크테마에서 안 바뀌므로 명시 */
+  color: var(--text-primary);
 }
 
 .brand-subtitle {
