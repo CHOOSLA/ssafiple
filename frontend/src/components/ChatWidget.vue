@@ -27,7 +27,7 @@
               class="place-chip"
               @click="chat.focusOnLocation(loc)"
             >
-              📍 {{ loc.name }}
+              📍 {{ locale === 'en' ? loc.name_en || loc.name : loc.name }}
             </button>
           </div>
         </div>
@@ -93,7 +93,7 @@ import { useChatStore } from '../stores/chat'
 // 한국어 데이터를 기준으로 동작하므로 항상 한국어 원문을 그대로 사용한다.
 const QUICK_ACTION_QUERIES = ['가볼 만한 곳 추천', '한강 근처 레포츠', '요즘 축제 있어?']
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const QUICK_ACTIONS = computed(() =>
   QUICK_ACTION_QUERIES.map((query, idx) => ({ query, label: t(`chat.quickAction${idx + 1}`) }))
 )

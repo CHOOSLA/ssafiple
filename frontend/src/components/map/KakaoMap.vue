@@ -41,7 +41,7 @@ import CategoryFilter from '@/components/map/CategoryFilter.vue'
 
 const mapStore = useMapStore()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 // 지도 인스턴스, 클러스터러, 마커 같은 무거운 객체는 Vue의 Proxy(반응성) 래핑을 피해야 렉이 안 걸립니다.
 const mapInstance = shallowRef(null)
 const clustererInstance = shallowRef(null)
@@ -560,7 +560,7 @@ const drawMarkers = (locations) => {
 
     // 지도 확대 시 보일 장소 이름 텍스트 라벨 생성
     const nameLabel = new window.kakao.maps.CustomOverlay({
-      content: `<div class="marker-name-label">${loc.name}</div>`,
+      content: `<div class="marker-name-label">${locale.value === 'en' ? loc.name_en || loc.name : loc.name}</div>`,
       position: position,
       yAnchor: 2.8, // 핀보다 위에 위치
       zIndex: 900
@@ -588,7 +588,7 @@ const drawMarkers = (locations) => {
         <div class="hover-pane">
           ${imageTag}
           <div class="hover-info">
-            <div class="hover-title">${loc.name}</div>
+            <div class="hover-title">${locale.value === 'en' ? loc.name_en || loc.name : loc.name}</div>
             <div class="hover-category" style="color: ${color}">${t(`common.category.${loc.category || '기타'}`)}</div>
           </div>
         </div>
@@ -687,7 +687,7 @@ watch(() => mapStore.selectedLocation, (loc) => {
       <div class="hover-pane">
         ${imageTag}
         <div class="hover-info">
-          <div class="hover-title">${loc.name}</div>
+          <div class="hover-title">${locale.value === 'en' ? loc.name_en || loc.name : loc.name}</div>
           <div class="hover-category" style="color: ${color}">${t(`common.category.${loc.category || '기타'}`)}</div>
         </div>
       </div>

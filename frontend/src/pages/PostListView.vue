@@ -257,7 +257,11 @@ const togglePostTranslation = async (post) => {
 // 스토어에서 선택된 장소 정보를 우선 표시하고, API로 받아온 상세 정보로 보강 (새로고침/직접 진입 대응)
 const location = ref(null)
 
-const placeName = computed(() => location.value?.name || mapStore.selectedLocation?.name || t('board.allPlaces'))
+const placeName = computed(() => {
+  const loc = location.value || mapStore.selectedLocation
+  if (!loc) return t('board.allPlaces')
+  return locale.value === 'en' ? loc.name_en || loc.name : loc.name
+})
 const placeCategory = computed(() => location.value?.category || mapStore.selectedLocation?.category || '')
 
 // 지도 마커 색상(카테고리별)과 동일한 팔레트 (style.css --cat-* 토큰 기준)
@@ -272,7 +276,11 @@ const CATEGORY_COLORS = {
   '여행코스': 'var(--cat-course)'
 }
 const placeCategoryColor = computed(() => CATEGORY_COLORS[placeCategory.value] || 'var(--cat-tour)')
-const placeAddress = computed(() => location.value?.address || mapStore.selectedLocation?.address || '')
+const placeAddress = computed(() => {
+  const loc = location.value || mapStore.selectedLocation
+  if (!loc) return ''
+  return locale.value === 'en' ? loc.address_en || loc.address : loc.address
+})
 
 // 상대경로(/uploads/...)일 수 있으므로 백엔드 origin 기준으로 풀어줌
 const placeImageUrl = computed(() => {
