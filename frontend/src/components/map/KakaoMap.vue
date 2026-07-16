@@ -51,6 +51,20 @@ let nameLabelOverlays = [] // 확대 시 나타날 이름 텍스트 오버레이
 let activeHoverOverlay = null // 현재 떠 있는 Hover 오버레이 (단일 유지)
 let spiderfiedMarkers = [] // 거미줄처럼 펼쳐진(Spiderfied) 상태의 마커들
 let pendingLocations = null // 펼침 상태 중 도착한 새 장소 데이터 (원상복구 시점에 반영)
+
+// 지도에서 UI에 가려진 영역의 크기(px).
+// 데스크톱은 좌측 패널(가로), 모바일(≤768px)은 하단 시트(세로)가 지도를 가린다.
+// 모바일에서 패널 너비(=100vw)를 가로 오프셋으로 쓰면 패딩이 지도 폭을 넘어서
+// setBounds/panTo가 엉뚱한 곳으로 튀는(초기화처럼 보이는) 문제가 생긴다.
+const getObscuredOffsets = () => {
+  if (window.innerWidth <= 768) {
+    const root = document.querySelector('.app-root')
+    const pct = root ? parseFloat(getComputedStyle(root).getPropertyValue('--sheet-height')) : 60
+    return { x: 0, y: window.innerHeight * ((isNaN(pct) ? 60 : pct) / 100) }
+  }
+  const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
+  return { x: panel ? panel.offsetWidth : 550, y: 0 }
+}
 let idleTimer = null // 맵 조작 이벤트 디바운싱용 타이머
 let routePolylines = [] // 길찾기 경로 폴리라인
 let routeEndpointMarkers = [] // 길찾기 출발/도착 마커
@@ -109,9 +123,10 @@ const getCurrentBoundsParams = () => {
   const proj = mapInstance.value.getProjection()
   let visualCenter = physicalCenter
   if (proj) {
-    const panelWidth = leftPanelWidth.value
+    const offs = getObscuredOffsets()
     let point = proj.pointFromCoords(physicalCenter)
-    point.x = point.x + (panelWidth / 2)
+    point.x = point.x + (offs.x / 2)
+    point.y = point.y - (offs.y / 2)
     visualCenter = proj.coordsFromPoint(point)
   }
 
@@ -147,14 +162,14 @@ const moveToMyLocation = () => {
           // 약간 확대된 상태(레벨 4)로 부드럽게 이동
           mapInstance.value.setLevel(4)
           
-          // 왼쪽 패널 너비를 고려하여 시각적 중앙으로 이동
+          // 가려진 영역(데스크톱: 좌측 패널 / 모바일: 하단 시트)을 고려해 시각적 중앙으로 이동
           const proj = mapInstance.value.getProjection()
-          const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
-          const panelWidth = panel ? panel.offsetWidth : 550
-          
+          const offs = getObscuredOffsets()
+
           if (proj) {
             let point = proj.pointFromCoords(moveLatLon)
-            point.x = point.x - (panelWidth / 2)
+            point.x = point.x - (offs.x / 2)
+            point.y = point.y + (offs.y / 2)
             mapInstance.value.panTo(proj.coordsFromPoint(point))
           } else {
             mapInstance.value.panTo(moveLatLon)
@@ -326,16 +341,15 @@ const renderMap = () => {
   
   // 클러스터 클릭 시 시각적 중앙(왼쪽 패널 고려)으로 줌 인 하는 커스텀 로직
   window.kakao.maps.event.addListener(clustererInstance.value, 'clusterclick', (cluster) => {
-    const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
-    const panelWidth = panel ? panel.offsetWidth : 550
-    
     // 클러스터에 포함된 마커들의 영역(바운더리)을 구합니다.
     const bounds = cluster.getBounds()
-    
-    // 카카오맵의 setBounds는 인자로 padding(상, 우, 하, 좌)을 받습니다.
-    // 왼쪽 패널 너비만큼 좌측 패딩을 주고, 나머지 면에도 넉넉한 여백(100px)을 주어 
-    // 마커들이 패널을 피해 오른쪽 빈 공간의 딱 정가운데에 알맞은 크기로 꽉 차게 렌더링되게 만듭니다.
-    mapInstance.value.setBounds(bounds, 100, 100, 100, panelWidth + 100)
+
+    // setBounds 패딩(상, 우, 하, 좌)에 가려진 영역만큼 여백을 더해, 마커들이
+    // 데스크톱은 패널 오른쪽 빈 공간, 모바일은 시트 위 지도 영역의 정중앙에 오도록 함.
+    // (모바일에서 좌측 패딩에 패널 너비 100vw를 더하면 지도 폭을 넘어 튕기는 버그가 있었음)
+    const offs = getObscuredOffsets()
+    const base = offs.y > 0 ? 48 : 100 // 모바일은 보이는 영역이 작으므로 기본 여백 축소
+    mapInstance.value.setBounds(bounds, base, base, offs.y + base, offs.x + base)
   })
   
   // 줌 컨트롤 추가 (우측 상단으로 이동 - AI 챗봇 버튼과 겹침 방지)
@@ -368,15 +382,15 @@ const renderMap = () => {
       }
       mapStore.isZoomOutTooMuch = false
       
-      // 왼쪽 패널(Left Panel) 너비를 고려한 시각적 중앙(Visual Center) 계산
+      // 가려진 영역을 고려한 시각적 중앙(Visual Center) 계산
+      // 데스크톱: 실제 중심보다 패널 절반만큼 우측 / 모바일: 시트 절반만큼 위쪽
       const proj = mapInstance.value.getProjection()
       let visualCenter = physicalCenter
       if (proj) {
-        const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
-        // 패널이 없으면 기본 550px 가정, 시각적 중앙은 실제 중심보다 패널 절반만큼 우측에 위치
-        const panelWidth = panel ? panel.offsetWidth : 550
+        const offs = getObscuredOffsets()
         let point = proj.pointFromCoords(physicalCenter)
-        point.x = point.x + (panelWidth / 2)
+        point.x = point.x + (offs.x / 2)
+        point.y = point.y - (offs.y / 2)
         visualCenter = proj.coordsFromPoint(point)
       }
       
@@ -716,35 +730,28 @@ watch(() => mapStore.selectedLocation, (loc) => {
   if (loc && loc.latitude && loc.longitude && mapInstance.value) {
     const position = new window.kakao.maps.LatLng(loc.latitude, loc.longitude)
     
-    const panel = document.querySelector('.left-panel') || document.querySelector('.place-list-panel')
-    const panelWidth = panel ? panel.offsetWidth : 550
-    
-    // 멀리서(레벨 5 이상) 보고 있었다면 핀이 있는 곳을 중심으로 먼저 줌 인 하고, 그 핀을 중앙으로 당겨옵니다.
-    const currentLevel = mapInstance.value.getLevel()
-    if (currentLevel > 4) {
-      mapInstance.value.setLevel(4, { animate: true, anchor: position })
-      
-      // 줌 애니메이션이 안정된 직후 시각적 중앙으로 당겨오기
-      setTimeout(() => {
-        const proj = mapInstance.value.getProjection()
-        if (proj) {
-          let point = proj.pointFromCoords(position)
-          point.x = point.x - (panelWidth / 2)
-          mapInstance.value.panTo(proj.coordsFromPoint(point))
-        } else {
-          mapInstance.value.panTo(position)
-        }
-      }, 250)
-    } else {
-      // 이미 충분히 가깝다면 바로 시각적 중앙으로 당겨오기
+    // 가려진 영역(데스크톱: 좌측 패널 / 모바일: 하단 시트) 기준 시각적 중앙으로 당겨오기
+    const panToVisualCenter = () => {
       const proj = mapInstance.value.getProjection()
       if (proj) {
+        const offs = getObscuredOffsets()
         let point = proj.pointFromCoords(position)
-        point.x = point.x - (panelWidth / 2)
+        point.x = point.x - (offs.x / 2)
+        point.y = point.y + (offs.y / 2)
         mapInstance.value.panTo(proj.coordsFromPoint(point))
       } else {
         mapInstance.value.panTo(position)
       }
+    }
+
+    // 멀리서(레벨 5 이상) 보고 있었다면 핀이 있는 곳을 중심으로 먼저 줌 인 하고, 그 핀을 중앙으로 당겨옵니다.
+    const currentLevel = mapInstance.value.getLevel()
+    if (currentLevel > 4) {
+      mapInstance.value.setLevel(4, { animate: true, anchor: position })
+      // 줌 애니메이션이 안정된 직후 이동
+      setTimeout(panToVisualCenter, 250)
+    } else {
+      panToVisualCenter()
     }
     
     // 오버레이 생성 및 표시
