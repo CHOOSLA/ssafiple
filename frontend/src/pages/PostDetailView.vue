@@ -12,19 +12,6 @@
       <div v-if="!post" class="status-message">{{ $t('board.loadingPost') }}</div>
 
       <template v-else>
-        <div v-if="galleryImages.length" class="post-gallery">
-          <div class="gallery-track" ref="galleryTrackRef" @scroll="onGalleryScroll">
-            <img
-              v-for="(img, idx) in galleryImages"
-              :key="idx"
-              :src="img"
-              class="gallery-image"
-              :alt="$t('board.attachedImageAlt')"
-            />
-          </div>
-          <div v-if="galleryImages.length > 1" class="gallery-counter">{{ galleryIndex + 1 }} / {{ galleryImages.length }}</div>
-        </div>
-
         <div class="post-content">
           <span class="pill">{{ $t('board.postLabel') }}</span>
           <h1 class="post-title">{{ post.title }}</h1>
@@ -32,6 +19,20 @@
             <span>{{ $t('board.authorLabel', { author: post.author }) }}</span>
             <span>{{ formatDate(post.created_at) }}</span>
           </div>
+
+          <div v-if="galleryImages.length" class="post-gallery">
+            <div class="gallery-track" ref="galleryTrackRef" @scroll="onGalleryScroll">
+              <img
+                v-for="(img, idx) in galleryImages"
+                :key="idx"
+                :src="img"
+                class="gallery-image"
+                :alt="$t('board.attachedImageAlt')"
+              />
+            </div>
+            <div v-if="galleryImages.length > 1" class="gallery-counter">{{ galleryIndex + 1 }} / {{ galleryImages.length }}</div>
+          </div>
+
           <p class="body-text">{{ post.content }}</p>
         </div>
 
@@ -227,6 +228,9 @@ onMounted(fetchPost)
 
 .post-gallery {
   position: relative;
+  margin-top: 14px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .gallery-track {
@@ -245,7 +249,7 @@ onMounted(fetchPost)
   flex: 0 0 100%;
   scroll-snap-align: start;
   width: 100%;
-  height: 260px;
+  height: 220px;
   object-fit: cover;
 }
 
