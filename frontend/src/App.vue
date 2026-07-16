@@ -77,7 +77,7 @@ const stopDrag = () => {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--bg-color, #eef0ea), #f4f1ea);
+  background: var(--bg-color);
 }
 
 .map-viewport {
@@ -94,8 +94,8 @@ const stopDrag = () => {
   z-index: 20;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, rgba(255,255,255,0.97), rgba(243,239,232,0.95));
-  box-shadow: 2px 0 26px rgba(20, 20, 19, 0.16);
+  background: var(--surface);
+  box-shadow: 2px 0 26px rgba(0, 0, 0, 0.16);
   overflow-y: auto;
 }
 
@@ -116,7 +116,7 @@ const stopDrag = () => {
 .resizer-handle {
   width: 4px;
   height: 48px;
-  background-color: #d1cfc8; /* 기본적으로 잘 보이도록 명도 조절 */
+  background-color: var(--text-muted);
   border-radius: 4px;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
