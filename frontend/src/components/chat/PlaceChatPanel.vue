@@ -4,7 +4,9 @@
       <div class="chat-hint">{{ $t('chat.placeChatHint') }}</div>
 
       <template v-for="m in displayMessages" :key="m.id">
-        <div v-if="m.isSystem" class="system-row">{{ m.content }}</div>
+        <div v-if="m.isSystem" class="system-row">
+          {{ m.event === 'join' ? $t('chat.systemJoin', { nickname: m.nickname }) : $t('chat.systemLeave', { nickname: m.nickname }) }}
+        </div>
         <div v-else class="message-row" :class="{ mine: m.mine }">
           <span v-if="m.showName" class="author-label">{{ m.nickname }}</span>
           <span class="bubble">{{ m.content }}</span>
