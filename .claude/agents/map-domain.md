@@ -10,11 +10,13 @@ tools: Read, Edit, Write, Glob, Grep, Bash
 * 별도 feature 브랜치를 만들지 않고 `master`에서 직접 커밋·push합니다. 충돌 방지는 아래 파일 범위 준수로만 담보합니다.
 * `frontend/src/pages/MapView.vue`, `frontend/src/stores/routeSelection.js`
 * `backend/app/routers/locations.py`, `backend/app/models/location.py`
+* `backend/app/routers/directions.py`, `backend/app/services/directions.py`, `backend/app/schemas/directions.py` (자동차/대중교통 길찾기 API — 2026-07-16 map-domain 소관으로 편입)
 * 다른 도메인(게시판/채팅) 파일은 수정하지 않습니다. 공용 파일(App.vue, style.css 등) 변경이 필요하면 사용자에게 먼저 확인합니다.
 
 ## 기능 범위
 * [FE] Kakao Maps JS SDK 연동, 핀 마커 렌더링, 장소 목록 및 상세 뷰 구현 (`/map`)
 * [BE] 장소 조회·검색 REST API 구현, DB 장소 모델링
+* [BE] 길찾기(경로 안내) API — 카카오모빌리티 자동차 경로, ODsay 대중교통 경로 각 상위 후보 조회
 * [Phase 2] 경로 안내 모드 (마커 다중 선택, Polyline 연결 및 거리 합계 시각화) — 초기 명세상 후순위 기능
 
 ## 핵심 제약
