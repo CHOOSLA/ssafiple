@@ -316,18 +316,7 @@ const renderMap = () => {
     minLevel: 3,         // 더 확대해야 풀리도록(3레벨부터 클러스터링) 설정
     gridSize: 80,        // 기본값 60보다 반경을 넓혀서 더 많은 핀을 한 덩어리로 잘 묶게 만듦
     disableClickZoom: true, // 기본 줌인 기능을 끄고 수동으로 시각적 중앙을 맞춰 줌인할 예정
-    styles: [{
-      width: '40px', height: '40px',
-      background: 'rgba(241, 91, 76, 0.9)', /* var(--accent) 색상 */
-      borderRadius: '50%',
-      color: '#fff',
-      textAlign: 'center',
-      fontWeight: 'bold',
-      lineHeight: '40px',
-      fontSize: '14px',
-      boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
-      border: '2px solid #fff'
-    }]
+    styles: buildClusterStyles(catColors[mapStore.categoryFilter] || '#f15b4c')
   })
   
   // 클러스터링이 완료될 때마다 라벨을 갱신 (클러스터 밖으로 튕겨나온 낱개 핀만 라벨 표시)
@@ -450,6 +439,37 @@ const catColors = {
   '축제공연행사': '#e0507a',
   '여행코스': '#c9a227'
 }
+
+// hex(#rrggbb) → rgba 문자열 (클러스터 반투명 배경용)
+const hexToRgba = (hex, alpha) => {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+}
+
+// 클러스터 마커 스타일 — 카테고리 필터 색상에 맞춰 배경만 달라짐
+const buildClusterStyles = (color) => [{
+  width: '40px', height: '40px',
+  background: hexToRgba(color, 0.9),
+  borderRadius: '50%',
+  color: '#fff',
+  textAlign: 'center',
+  fontWeight: 'bold',
+  lineHeight: '40px',
+  fontSize: '14px',
+  boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+  border: '2px solid #fff'
+}]
+
+// 카테고리 필터 전환 시 클러스터 색상을 해당 카테고리 색으로 갱신
+watch(() => mapStore.categoryFilter, (cat) => {
+  const clusterer = clustererInstance.value
+  if (!clusterer) return
+  const color = catColors[cat] || '#f15b4c'
+  if (typeof clusterer.setStyles === 'function') {
+    clusterer.setStyles(buildClusterStyles(color))
+    if (typeof clusterer.redraw === 'function') clusterer.redraw()
+  }
+})
 
 const drawMarkers = (locations) => {
   if (!mapInstance.value || !window.kakao || !clustererInstance.value || !Array.isArray(locations)) return
