@@ -2,24 +2,27 @@
   <div class="page-shell">
     <section class="app-shell">
       <header class="panel-header">
-        <button type="button" class="brand-row brand-row-link" @click="goBack">
-          <img class="brand-badge" src="/favicon.svg" alt="SSAFIPLE 로고" />
-          <div>
-            <div class="brand-title">SSAFIPLE</div>
-            <div class="brand-subtitle">서울 여행 정보 커뮤니티</div>
-          </div>
-        </button>
+        <div class="header-top-row">
+          <button type="button" class="brand-row brand-row-link" @click="goBack">
+            <img class="brand-badge" src="/favicon.svg" :alt="$t('common.brand.logoAlt')" />
+            <div>
+              <div class="brand-title">{{ $t('common.brand.name') }}</div>
+              <div class="brand-subtitle">{{ $t('common.brand.tagline') }}</div>
+            </div>
+          </button>
+          <LangSwitcher />
+        </div>
         <div class="search-bar">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
             <circle cx="7" cy="7" r="5" fill="none" stroke="#9a968f" stroke-width="2" />
             <line x1="10.8" y1="10.8" x2="15" y2="15" stroke="#9a968f" stroke-width="2" stroke-linecap="round" />
           </svg>
-          <input v-model="searchQuery" placeholder="게시글 제목/내용 검색" />
+          <input v-model="searchQuery" :placeholder="$t('board.searchPlaceholder')" />
           <button
             v-if="searchQuery"
             type="button"
             class="search-clear-btn"
-            aria-label="검색어 지우기"
+            :aria-label="$t('common.clearSearchAria')"
             @click="searchQuery = ''"
           >
             ×
@@ -30,13 +33,13 @@
       <div class="place-hero">
         <button type="button" class="hero-back" @click="goBack">‹</button>
         <img v-if="placeImageUrl" :src="placeImageUrl" class="hero-photo" alt="" />
-        <span v-else class="hero-placeholder">PHOTO · {{ placeName }}</span>
+        <span v-else class="hero-placeholder">{{ $t('board.photoPlaceholder', { name: placeName }) }}</span>
       </div>
 
       <div class="place-info-bar">
         <div class="place-name-row">
           <span class="place-name">{{ placeName }}</span>
-          <span class="place-cat" :style="{ color: placeCategoryColor }">{{ placeCategory }}</span>
+          <span class="place-cat" :style="{ color: placeCategoryColor }">{{ placeCategory ? $t(`common.category.${placeCategory}`) : '' }}</span>
         </div>
         <div class="place-address">{{ placeAddress }}</div>
       </div>
@@ -47,29 +50,29 @@
           class="tab-btn"
           :class="{ active: activeTab === 'posts' }"
           @click="activeTab = 'posts'"
-        >게시글 {{ filteredPosts.length }}</button>
+        >{{ $t('board.postsTab', { count: filteredPosts.length }) }}</button>
         <button
           type="button"
           class="tab-btn"
           :class="{ active: activeTab === 'chat' }"
           @click="activeTab = 'chat'"
-        >실시간 채팅</button>
+        >{{ $t('board.chatTab') }}</button>
         <button
           type="button"
           class="tab-btn"
           :class="{ active: activeTab === 'route' }"
           @click="activeTab = 'route'"
-        >길찾기</button>
+        >{{ $t('board.routeTab') }}</button>
       </div>
 
       <template v-if="activeTab === 'posts'">
         <div class="list-toolbar">
-          <router-link :to="`/locations/${$route.params.location_id}/posts/new`" class="write-btn"><span class="write-icon">+</span>글쓰기</router-link>
-          <button type="button" class="route-toolbar-btn" @click="goToRouteTab">🚗 길찾기</button>
+          <router-link :to="`/locations/${$route.params.location_id}/posts/new`" class="write-btn"><span class="write-icon">+</span>{{ $t('board.writeButton') }}</router-link>
+          <button type="button" class="route-toolbar-btn" @click="goToRouteTab">{{ $t('board.findRouteButton') }}</button>
         </div>
 
         <div class="panel-body">
-          <div v-if="loading" class="status-message">불러오는 중...</div>
+          <div v-if="loading" class="status-message">{{ $t('board.loadingPosts') }}</div>
           <div v-else-if="error" class="status-message error">{{ error }}</div>
           <div v-else class="post-list">
             <router-link v-for="post in filteredPosts" :key="post.id" :to="`/locations/${$route.params.location_id}/posts/${post.id}`" class="post-item">
@@ -78,12 +81,12 @@
               <div class="post-meta">
                 <span>{{ post.author }}</span>
                 <span>{{ formatDate(post.created_at) }}</span>
-                <span>댓글 {{ post.comments?.length || 0 }}</span>
+                <span>{{ $t('board.commentCountShort', { count: post.comments?.length || 0 }) }}</span>
               </div>
             </router-link>
             <div v-if="filteredPosts.length === 0" class="empty-row">
-              <div class="empty-title">아직 등록된 게시글이 없어요.</div>
-              <div class="empty-sub">첫 게시글을 남겨보세요.</div>
+              <div class="empty-title">{{ $t('board.noPostsTitle') }}</div>
+              <div class="empty-sub">{{ $t('board.noPostsDesc') }}</div>
             </div>
           </div>
         </div>
@@ -92,23 +95,23 @@
       <div v-else-if="activeTab === 'route'" class="panel-body route-panel">
         <div v-if="mapStore.routeLoading" class="route-state">
           <div class="route-state-icon">📍</div>
-          <div class="route-state-title">현재 위치를 확인하는 중...</div>
+          <div class="route-state-title">{{ $t('board.routeLocating') }}</div>
         </div>
 
         <div v-else-if="mapStore.routeInfo" class="route-result">
           <RouteMiniMap :path="mapStore.routePath" class="route-result-map" />
           <div class="route-result-duration">{{ routeDurationText }}</div>
           <div class="route-result-distance">{{ routeDistanceText }}</div>
-          <button type="button" class="route-retry-btn" @click="handleFindRoute">다시 찾기</button>
-          <button type="button" class="route-close-btn" @click="mapStore.clearRoute()">경로 지우기</button>
+          <button type="button" class="route-retry-btn" @click="handleFindRoute">{{ $t('board.routeRetry') }}</button>
+          <button type="button" class="route-close-btn" @click="mapStore.clearRoute()">{{ $t('board.routeClear') }}</button>
         </div>
 
         <div v-else class="route-state">
           <div class="route-state-icon">🚗</div>
-          <div class="route-state-title">{{ placeName }}까지 길찾기</div>
-          <p class="route-state-desc">현재 위치를 기준으로 자동차 경로와 예상 소요 시간을 확인할 수 있어요.</p>
+          <div class="route-state-title">{{ $t('board.routeToPlace', { name: placeName }) }}</div>
+          <p class="route-state-desc">{{ $t('board.routeDesc') }}</p>
           <p v-if="mapStore.routeError" class="route-error">{{ mapStore.routeError }}</p>
-          <button type="button" class="route-start-btn" @click="handleFindRoute">길찾기 시작</button>
+          <button type="button" class="route-start-btn" @click="handleFindRoute">{{ $t('board.routeStart') }}</button>
         </div>
       </div>
 
@@ -120,14 +123,17 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMapStore } from '@/stores/mapStore'
 import PlaceChatPanel from '@/components/chat/PlaceChatPanel.vue'
 import RouteMiniMap from '@/components/map/RouteMiniMap.vue'
+import LangSwitcher from '@/components/common/LangSwitcher.vue'
 import api from '../api'
 
 const router = useRouter()
 const route = useRoute()
 const mapStore = useMapStore()
+const { t, locale } = useI18n()
 
 const posts = ref([])
 const loading = ref(false)
@@ -138,7 +144,7 @@ const activeTab = ref('posts')
 // 스토어에서 선택된 장소 정보를 우선 표시하고, API로 받아온 상세 정보로 보강 (새로고침/직접 진입 대응)
 const location = ref(null)
 
-const placeName = computed(() => location.value?.name || mapStore.selectedLocation?.name || '전체 장소')
+const placeName = computed(() => location.value?.name || mapStore.selectedLocation?.name || t('board.allPlaces'))
 const placeCategory = computed(() => location.value?.category || mapStore.selectedLocation?.category || '')
 
 // 지도 마커 색상(카테고리별)과 동일한 팔레트 (style.css --cat-* 토큰 기준)
@@ -179,7 +185,7 @@ const handleFindRoute = () => {
   const destLat = location.value?.latitude ?? mapStore.selectedLocation?.latitude
   const destLng = location.value?.longitude ?? mapStore.selectedLocation?.longitude
   if (destLat == null || destLng == null) {
-    mapStore.routeError = '장소의 좌표 정보를 찾을 수 없습니다.'
+    mapStore.routeError = t('board.routeCoordError')
     return
   }
   mapStore.fetchDirections(destLat, destLng)
@@ -197,7 +203,7 @@ const routeDurationText = computed(() => {
   const seconds = mapStore.routeInfo?.duration
   if (seconds == null) return ''
   const minutes = Math.max(1, Math.round(seconds / 60))
-  return `🚗 ${minutes}분`
+  return t('board.routeDurationMinutes', { minutes })
 })
 
 const routeDistanceText = computed(() => {
@@ -218,7 +224,7 @@ const filteredPosts = computed(() => {
 
 const formatDate = (value) => {
   if (!value) return '-'
-  return new Date(value).toLocaleDateString('ko-KR')
+  return new Date(value).toLocaleDateString(locale.value === 'en' ? 'en-US' : 'ko-KR')
 }
 
 const fetchPosts = async () => {
@@ -232,7 +238,7 @@ const fetchPosts = async () => {
     const { data } = await api.get('/posts/', { params })
     posts.value = data
   } catch (err) {
-    error.value = '게시글을 불러오지 못했습니다.'
+    error.value = t('board.fetchPostsError')
   } finally {
     loading.value = false
   }
@@ -282,10 +288,18 @@ watch(
   flex: none;
 }
 
+.header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .brand-row {
   display: flex;
   align-items: center;
   gap: 9px;
+  min-width: 0;
 }
 
 .brand-row-link {

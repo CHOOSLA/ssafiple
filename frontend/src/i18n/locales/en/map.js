@@ -1,0 +1,19 @@
+export default {
+  searchPlaceholder: 'Search places, addresses',
+  nearbySummary: '{count} nearby places · Tap a pin to explore',
+  loadingLocations: 'Loading data...',
+  zoomInMessage: 'Please zoom in further.',
+  noResultsMessage: 'No results found.',
+  postCount: '{count} posts',
+  commentCount: '{count} comments',
+  firstPostPrompt: 'Be the first to post',
+  morePostsPrompt: 'Leave one more post',
+  loadingMore: 'Loading more...',
+  allLoaded: 'All places loaded.',
+  zoomWarningTitle: 'Please zoom in further',
+  zoomWarningDesc: 'Pull the map to see the hot spots in this area.',
+  myLocationTitle: 'Move to my location',
+  geoErrorAlert: "Couldn't get your location. Please check your browser's location permission settings.",
+  geoUnsupportedAlert: 'This browser does not support location services.',
+  noPhoto: 'No photo'
+}

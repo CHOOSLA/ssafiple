@@ -1,7 +1,7 @@
 <template>
   <div class="place-chat">
     <div ref="messageListEl" class="message-list">
-      <div class="chat-hint">이 장소를 여행 중인 사람들과 실시간으로 이야기해보세요</div>
+      <div class="chat-hint">{{ $t('chat.placeChatHint') }}</div>
 
       <template v-for="m in displayMessages" :key="m.id">
         <div v-if="m.isSystem" class="system-row">{{ m.content }}</div>
@@ -18,10 +18,10 @@
         class="place-chat-input"
         type="text"
         maxlength="300"
-        placeholder="익명으로 채팅 보내기"
+        :placeholder="$t('chat.placeChatPlaceholder')"
         :disabled="chat.status !== 'open'"
       />
-      <button class="send-btn" type="submit" aria-label="전송" :disabled="chat.status !== 'open' || !draft.trim()">
+      <button class="send-btn" type="submit" :aria-label="$t('chat.sendAria')" :disabled="chat.status !== 'open' || !draft.trim()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
           <polygon points="4,3 22,12 4,21 4,14 15,12 4,10" />
         </svg>

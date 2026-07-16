@@ -1,60 +1,60 @@
 <template>
   <div class="write-shell">
     <header class="write-header">
-      <button type="button" class="text-btn" @click="handleCancel">취소</button>
-      <span class="write-title">{{ isEdit ? '게시글 수정' : '글쓰기' }}</span>
+      <button type="button" class="text-btn" @click="handleCancel">{{ $t('common.actions.cancel') }}</button>
+      <span class="write-title">{{ isEdit ? $t('board.editPostTitle') : $t('board.writePostTitle') }}</span>
       <span class="header-spacer" aria-hidden="true"></span>
     </header>
 
     <div class="write-body">
-      <div class="write-subtitle">자유게시판에 남기는 글 · 익명</div>
-      <input v-model="title" class="title-input" placeholder="제목" />
+      <div class="write-subtitle">{{ $t('board.writeSubtitle') }}</div>
+      <input v-model="title" class="title-input" :placeholder="$t('board.titlePlaceholder')" />
       <textarea
         v-model="content"
         class="content-input"
-        placeholder="내용을 입력하세요. 로그인 없이 익명으로 등록됩니다."
+        :placeholder="$t('board.contentPlaceholder')"
       ></textarea>
 
       <div class="attach-row">
-        <label class="attach-btn" for="imageFile">📷 사진 첨부</label>
+        <label class="attach-btn" for="imageFile">{{ $t('board.attachPhoto') }}</label>
         <input id="imageFile" type="file" accept="image/*" hidden @change="handleImageUpload" />
-        <span v-if="uploading" class="helper-text">업로드 중...</span>
+        <span v-if="uploading" class="helper-text">{{ $t('board.uploading') }}</span>
         <span v-else-if="uploadError" class="helper-text error">{{ uploadError }}</span>
-        <span v-else-if="imageUrl" class="helper-text">이미지 첨부됨</span>
+        <span v-else-if="imageUrl" class="helper-text">{{ $t('board.imageAttached') }}</span>
       </div>
-      <img v-if="imageUrl" :src="resolvedImageUrl" class="preview-image" alt="첨부 이미지 미리보기" />
+      <img v-if="imageUrl" :src="resolvedImageUrl" class="preview-image" :alt="$t('board.imagePreviewAlt')" />
     </div>
 
     <footer class="write-footer">
-      <button type="button" class="footer-btn cancel" @click="handleCancel">취소</button>
-      <button type="button" class="footer-btn submit" :disabled="submitDisabled" @click="openAuthModal">등록</button>
+      <button type="button" class="footer-btn cancel" @click="handleCancel">{{ $t('common.actions.cancel') }}</button>
+      <button type="button" class="footer-btn submit" :disabled="submitDisabled" @click="openAuthModal">{{ $t('common.actions.submit') }}</button>
     </footer>
   </div>
 
   <div v-if="showAuthModal" class="modal-backdrop" @click.self="closeAuthModal">
     <div class="auth-modal panel-card">
-      <h4>{{ isEdit ? '비밀번호 확인' : '작성자 정보' }}</h4>
+      <h4>{{ isEdit ? $t('board.confirmPasswordTitle') : $t('board.authorInfoTitle') }}</h4>
 
       <div v-if="!isEdit" class="form-group">
-        <label for="authorInput">닉네임</label>
-        <input id="authorInput" v-model="authorInput" class="form-control" placeholder="닉네임을 입력하세요" />
+        <label for="authorInput">{{ $t('board.nicknameLabel') }}</label>
+        <input id="authorInput" v-model="authorInput" class="form-control" :placeholder="$t('board.nicknamePlaceholder')" />
       </div>
       <div class="form-group">
-        <label for="passwordInput">비밀번호</label>
+        <label for="passwordInput">{{ $t('board.passwordLabel') }}</label>
         <input
           id="passwordInput"
           v-model="passwordInput"
           type="password"
           class="form-control"
-          placeholder="비밀번호를 입력하세요"
+          :placeholder="$t('board.passwordInputPlaceholder')"
           @keyup.enter="confirmAuthModal"
         />
       </div>
       <p v-if="authError" class="helper-text error">{{ authError }}</p>
 
       <div class="modal-actions">
-        <button type="button" class="footer-btn cancel" @click="closeAuthModal">취소</button>
-        <button type="button" class="footer-btn submit" @click="confirmAuthModal">확인</button>
+        <button type="button" class="footer-btn cancel" @click="closeAuthModal">{{ $t('common.actions.cancel') }}</button>
+        <button type="button" class="footer-btn submit" @click="confirmAuthModal">{{ $t('common.actions.confirm') }}</button>
       </div>
     </div>
   </div>
@@ -63,12 +63,14 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMapStore } from '@/stores/mapStore'
 import api from '../api'
 
 const route = useRoute()
 const router = useRouter()
 const mapStore = useMapStore()
+const { t } = useI18n()
 
 const isEdit = computed(() => !!route.params.id)
 const title = ref('')
@@ -111,7 +113,7 @@ const handleImageUpload = async (event) => {
     const { data } = await api.post('/posts/upload-image', formData)
     imageUrl.value = data.image_url
   } catch (err) {
-    uploadError.value = '이미지 업로드에 실패했습니다.'
+    uploadError.value = t('board.imageUploadError')
   } finally {
     uploading.value = false
   }
@@ -131,11 +133,11 @@ const closeAuthModal = () => {
 
 const confirmAuthModal = async () => {
   if (!isEdit.value && !authorInput.value.trim()) {
-    authError.value = '닉네임을 입력하세요.'
+    authError.value = t('board.nicknameRequiredError')
     return
   }
   if (!passwordInput.value) {
-    authError.value = '비밀번호를 입력하세요.'
+    authError.value = t('board.passwordRequiredError')
     return
   }
 
@@ -160,7 +162,7 @@ const confirmAuthModal = async () => {
     showAuthModal.value = false
     router.push(`/locations/${route.params.location_id}/posts`)
   } catch (err) {
-    authError.value = err.response?.status === 403 ? '비밀번호가 일치하지 않습니다.' : '저장에 실패했습니다.'
+    authError.value = err.response?.status === 403 ? t('board.passwordMismatchError') : t('board.saveError')
   }
 }
 

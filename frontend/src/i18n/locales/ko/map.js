@@ -1,0 +1,19 @@
+export default {
+  searchPlaceholder: '장소, 주소 검색',
+  nearbySummary: '주변 장소 {count}곳 · 핀을 눌러 탐색하세요',
+  loadingLocations: '데이터를 불러오는 중입니다...',
+  zoomInMessage: '지도를 더 확대해주세요.',
+  noResultsMessage: '검색 결과가 없습니다.',
+  postCount: '게시글 {count}개',
+  commentCount: '댓글 {count}개',
+  firstPostPrompt: '첫 글을 남겨주세요',
+  morePostsPrompt: '글을 더 남겨주세요',
+  loadingMore: '추가 데이터를 불러오는 중...',
+  allLoaded: '모든 장소를 불러왔습니다.',
+  zoomWarningTitle: '지도를 더 확대해주세요',
+  zoomWarningDesc: '이 지역의 핫플을 보려면 화면을 당겨보세요.',
+  myLocationTitle: '내 위치로 이동',
+  geoErrorAlert: '위치 정보를 가져올 수 없습니다. 브라우저의 위치 권한 설정을 확인해주세요.',
+  geoUnsupportedAlert: '이 브라우저에서는 위치 정보를 지원하지 않습니다.',
+  noPhoto: '사진 없음'
+}
