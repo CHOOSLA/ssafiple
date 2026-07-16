@@ -252,9 +252,10 @@ onMounted(() => {
   fetchPosts()
 })
 
-// 다른 장소로 이동/이탈 시 지도에 이전 경로가 남지 않도록 정리
+// 다른 장소로 이동/이탈 시 지도에 이전 경로·플로팅 정보가 남지 않도록 정리
 onUnmounted(() => {
   mapStore.clearRoute()
+  mapStore.clearSelectedLocation()
 })
 
 // 같은 라우트에서 location_id 파라미터만 바뀌면(지도에서 다른 핀 클릭 등)

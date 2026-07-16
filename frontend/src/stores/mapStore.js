@@ -96,6 +96,10 @@ export const useMapStore = defineStore('map', () => {
     // 여기서 MapView 컴포넌트 내의 지도 중심 이동 등을 트리거할 수 있습니다.
   }
 
+  const clearSelectedLocation = () => {
+    selectedLocation.value = null
+  }
+
   // 길찾기(경로 안내) 상태 — 현재 위치 → 선택 장소
   const routePath = ref([])
   const routeInfo = ref(null) // { duration, distance }
@@ -162,6 +166,7 @@ export const useMapStore = defineStore('map', () => {
     fetchLocations,
     fetchMoreLocations,
     selectLocation,
+    clearSelectedLocation,
     setSearchQuery,
     setCategoryFilter,
     routePath,
