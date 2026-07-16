@@ -2,12 +2,24 @@
 
 :root {
   --accent: #f15b4c;
+  --accent-hover: #d8402f;
   --bg-color: #eef0ea;
   --text-primary: #1c1b1a;
   --text-secondary: #8a877f;
   --text-muted: #b0ada5;
   --border-color: #f0eee9;
-  
+
+  /* 표면/보더 계열 시맨틱 토큰 (다크테마 A-2 대비: 라이트 값은 기존 하드코딩과 동일) */
+  --surface: #ffffff;
+  --surface-muted: #f4f2ee;
+  --surface-sunken: #f7f6f3;
+  --surface-card: #fcfbf9;
+  --surface-hover: #faf9f6;
+  --border-hairline: #eceae6;
+  --border-input: #e3e0d9;
+  --danger: #ef6a5f;
+  --danger-text: #d24b3d;
+
   --cat-tour: #f15b4c;
   --cat-food: #ef8a3c;
   --cat-culture: #3f8fd0;
@@ -41,7 +53,7 @@ a {
   text-decoration: none;
 } 
 a:hover {
-  color: #d8402f;
+  color: var(--accent-hover);
 }
 
 button, input, textarea {
@@ -85,7 +97,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .btn-danger {
-  background: #ef6a5f;
+  background: var(--danger);
   color: #fff;
 }
 
@@ -140,7 +152,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .helper-text.error {
-  color: #d24b3d;
+  color: var(--danger-text);
 }
 
 /* 스크롤바 커스텀 */

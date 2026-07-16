@@ -858,4 +858,11 @@ watch(
   color: var(--text-muted);
   margin-top: 6px;
 }
+
+/* 모바일 하단 시트에서는 히어로가 세로 공간을 과하게 먹지 않도록 축소 */
+@media (max-width: 768px) {
+  .place-hero {
+    height: 140px;
+  }
+}
 </style>

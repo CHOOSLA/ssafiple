@@ -148,4 +148,31 @@ const stopDrag = () => {
   bottom: 24px;
   z-index: 40;
 }
+
+/*
+ * 모바일(≤768px): 좌/우 스플릿을 상/하 스플릿으로 전환.
+ * 지도는 뷰포트 상단 40%에 그대로 남고, 좌측 패널이 하단 60% 시트로 내려온다.
+ * 인라인으로 걸린 panelWidth(px)는 !important로 무력화 — 스크립트는 건드리지 않는다.
+ */
+@media (max-width: 768px) {
+  .left-panel {
+    width: 100% !important;
+    top: auto;
+    height: 60%;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -6px 26px rgba(20, 20, 19, 0.16);
+  }
+
+  /* 너비 드래그 리사이저는 상하 레이아웃에서 의미가 없어 숨김 */
+  .resizer {
+    display: none;
+  }
+
+  /* 하단 시트(60%) 위로 띄워 패널 입력창(댓글·채팅)과 겹치지 않게 함 */
+  .chatbot-container {
+    right: 16px;
+    bottom: calc(60% + 12px);
+  }
+}
 </style>
