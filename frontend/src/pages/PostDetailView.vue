@@ -30,7 +30,37 @@
                 :alt="$t('board.attachedImageAlt')"
               />
             </div>
-            <div v-if="galleryImages.length > 1" class="gallery-counter">{{ galleryIndex + 1 }} / {{ galleryImages.length }}</div>
+
+            <template v-if="galleryImages.length > 1">
+              <button
+                type="button"
+                class="gallery-nav prev"
+                :disabled="galleryIndex === 0"
+                :aria-label="$t('board.prevImage')"
+                @click="goToGalleryImage(galleryIndex - 1)"
+              >‹</button>
+              <button
+                type="button"
+                class="gallery-nav next"
+                :disabled="galleryIndex === galleryImages.length - 1"
+                :aria-label="$t('board.nextImage')"
+                @click="goToGalleryImage(galleryIndex + 1)"
+              >›</button>
+
+              <div class="gallery-counter">{{ galleryIndex + 1 }} / {{ galleryImages.length }}</div>
+
+              <div class="gallery-dots">
+                <button
+                  v-for="(img, idx) in galleryImages"
+                  :key="idx"
+                  type="button"
+                  class="gallery-dot"
+                  :class="{ active: idx === galleryIndex }"
+                  :aria-label="$t('board.goToImage', { index: idx + 1 })"
+                  @click="goToGalleryImage(idx)"
+                ></button>
+              </div>
+            </template>
           </div>
 
           <p class="body-text">{{ post.content }}</p>
@@ -113,6 +143,15 @@ const onGalleryScroll = () => {
   const el = galleryTrackRef.value
   if (!el || !el.clientWidth) return
   galleryIndex.value = Math.round(el.scrollLeft / el.clientWidth)
+}
+
+// 화살표/점 버튼 클릭 시 해당 이미지로 스크롤 이동 (스크롤 이벤트가 galleryIndex를 다시 동기화함)
+const goToGalleryImage = (index) => {
+  const el = galleryTrackRef.value
+  if (!el || !el.clientWidth) return
+  const clamped = Math.max(0, Math.min(index, galleryImages.value.length - 1))
+  el.scrollTo({ left: clamped * el.clientWidth, behavior: 'smooth' })
+  galleryIndex.value = clamped
 }
 
 const fetchPost = async () => {
@@ -256,13 +295,74 @@ onMounted(fetchPost)
 .gallery-counter {
   position: absolute;
   right: 10px;
-  bottom: 10px;
+  top: 10px;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
   font-size: 11px;
   font-weight: 600;
   padding: 3px 9px;
   border-radius: 999px;
+  pointer-events: none;
+}
+
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.gallery-nav:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.gallery-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.gallery-nav.prev {
+  left: 8px;
+}
+
+.gallery-nav.next {
+  right: 8px;
+}
+
+.gallery-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.gallery-dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.gallery-dot.active {
+  background: #fff;
+  width: 16px;
+  border-radius: 3px;
 }
 
 .post-content {
