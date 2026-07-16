@@ -4,53 +4,66 @@
 
 <script setup>
 import { onMounted, ref, shallowRef, watch } from 'vue'
+import { waitForKakao } from '@/utils/kakaoLoader'
 
 const props = defineProps({
-  path: { type: Array, default: () => [] } // [{ lat, lng }, ...]
+  path: { type: Array, default: () => [] }, // [{ lat, lng }, ...]
+  segments: { type: Array, default: null } // [{ mode: 'walk'|'bus'|'subway', path: [{lat,lng}] }, ...]
 })
 
 const mapRef = ref(null)
 const mapInstance = shallowRef(null)
-let polyline = null
+let polylines = []
 let markers = []
 
-// 우측 메인 지도(KakaoMap.vue)가 이미 SDK 스크립트를 로드해두므로, 여기서는
-// window.kakao.maps가 준비될 때까지 짧게 폴링만 하고 새로 스크립트를 삽입하지 않는다.
-const waitForKakao = () => {
-  return new Promise((resolve, reject) => {
-    if (window.kakao && window.kakao.maps) {
-      resolve()
-      return
-    }
-    let attempts = 0
-    const timer = setInterval(() => {
-      attempts += 1
-      if (window.kakao && window.kakao.maps) {
-        clearInterval(timer)
-        resolve()
-      } else if (attempts > 50) {
-        clearInterval(timer)
-        reject(new Error('Kakao Maps SDK 로드 대기 시간 초과'))
-      }
-    }, 100)
-  })
+const SEGMENT_COLORS = {
+  subway: '#3b82f6',
+  bus: '#22c55e',
+  walk: '#9ca3af'
+}
+
+const clearOverlays = () => {
+  polylines.forEach(p => p.setMap(null))
+  polylines = []
+  markers.forEach(m => m.setMap(null))
+  markers = []
 }
 
 const drawRoute = () => {
   if (!mapInstance.value || !window.kakao) return
 
-  if (polyline) {
-    polyline.setMap(null)
-    polyline = null
+  clearOverlays()
+
+  if (props.segments && props.segments.length > 0) {
+    const bounds = new window.kakao.maps.LatLngBounds()
+
+    props.segments.forEach((segment) => {
+      const segmentPath = (segment.path || []).map(p => new window.kakao.maps.LatLng(p.lat, p.lng))
+      if (segmentPath.length === 0) return
+
+      const polyline = new window.kakao.maps.Polyline({
+        path: segmentPath,
+        strokeWeight: 4,
+        strokeColor: SEGMENT_COLORS[segment.mode] || SEGMENT_COLORS.walk,
+        strokeOpacity: 0.9,
+        strokeStyle: segment.mode === 'walk' ? 'shortdash' : 'solid'
+      })
+      polyline.setMap(mapInstance.value)
+      polylines.push(polyline)
+      segmentPath.forEach(pt => bounds.extend(pt))
+    })
+
+    if (!bounds.isEmpty()) {
+      mapInstance.value.setBounds(bounds, 24, 24, 24, 24)
+    }
+    return
   }
-  markers.forEach(m => m.setMap(null))
-  markers = []
 
   if (!props.path || props.path.length === 0) return
 
   const linePath = props.path.map(p => new window.kakao.maps.LatLng(p.lat, p.lng))
 
-  polyline = new window.kakao.maps.Polyline({
+  const polyline = new window.kakao.maps.Polyline({
     path: linePath,
     strokeWeight: 4,
     strokeColor: '#f15b4c',
@@ -58,6 +71,7 @@ const drawRoute = () => {
     strokeStyle: 'solid'
   })
   polyline.setMap(mapInstance.value)
+  polylines.push(polyline)
 
   const startMarker = new window.kakao.maps.Marker({ position: linePath[0] })
   const endMarker = new window.kakao.maps.Marker({ position: linePath[linePath.length - 1] })
@@ -84,7 +98,7 @@ onMounted(async () => {
   }
 })
 
-watch(() => props.path, () => {
+watch([() => props.path, () => props.segments], () => {
   drawRoute()
 })
 </script>

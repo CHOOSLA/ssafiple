@@ -93,25 +93,85 @@
       </template>
 
       <div v-else-if="activeTab === 'route'" class="panel-body route-panel">
-        <div v-if="mapStore.routeLoading" class="route-state">
-          <div class="route-state-icon">📍</div>
-          <div class="route-state-title">{{ $t('board.routeLocating') }}</div>
-        </div>
+        <div class="route-panel-inner">
+          <DestinationSearch :model-value="mapStore.routeDestination" @update:model-value="mapStore.setRouteDestination" />
 
-        <div v-else-if="mapStore.routeInfo" class="route-result">
-          <RouteMiniMap :path="mapStore.routePath" class="route-result-map" />
-          <div class="route-result-duration">{{ routeDurationText }}</div>
-          <div class="route-result-distance">{{ routeDistanceText }}</div>
-          <button type="button" class="route-retry-btn" @click="handleFindRoute">{{ $t('board.routeRetry') }}</button>
-          <button type="button" class="route-close-btn" @click="mapStore.clearRoute()">{{ $t('board.routeClear') }}</button>
-        </div>
+          <div class="route-mode-tabs">
+            <button
+              type="button"
+              class="route-mode-btn"
+              :class="{ active: mapStore.routeMode === 'car' }"
+              @click="mapStore.setRouteMode('car')"
+            >{{ $t('board.routeModeCar') }}</button>
+            <button
+              type="button"
+              class="route-mode-btn"
+              :class="{ active: mapStore.routeMode === 'transit' }"
+              @click="mapStore.setRouteMode('transit')"
+            >{{ $t('board.routeModeTransit') }}</button>
+          </div>
 
-        <div v-else class="route-state">
-          <div class="route-state-icon">🚗</div>
-          <div class="route-state-title">{{ $t('board.routeToPlace', { name: placeName }) }}</div>
-          <p class="route-state-desc">{{ $t('board.routeDesc') }}</p>
-          <p v-if="mapStore.routeError" class="route-error">{{ mapStore.routeError }}</p>
-          <button type="button" class="route-start-btn" @click="handleFindRoute">{{ $t('board.routeStart') }}</button>
+          <div v-if="!mapStore.routeDestination" class="route-state">
+            <div class="route-state-icon">🧭</div>
+            <div class="route-state-title">{{ $t('board.routeSelectDestination') }}</div>
+          </div>
+
+          <div v-else-if="mapStore.routeLoading" class="route-state">
+            <div class="route-state-icon">📍</div>
+            <div class="route-state-title">{{ $t('board.routeLocating') }}</div>
+          </div>
+
+          <div v-else-if="mapStore.routeError" class="route-state">
+            <div class="route-state-icon">⚠️</div>
+            <p class="route-error">{{ mapStore.routeError }}</p>
+            <button type="button" class="route-retry-btn" @click="mapStore.fetchRoutes()">{{ $t('board.routeRetry') }}</button>
+          </div>
+
+          <template v-else-if="routeCandidates.length > 0">
+            <RouteMiniMap :path="mapStore.routePath" :segments="mapStore.routeSegments" class="route-result-map" />
+
+            <div class="route-candidate-list">
+              <button
+                v-for="(candidate, index) in routeCandidates"
+                :key="index"
+                type="button"
+                class="route-candidate-card"
+                :class="{ selected: mapStore.selectedCandidateIndex === index }"
+                @click="mapStore.selectCandidate(index)"
+              >
+                <div class="route-candidate-top">
+                  <span class="route-candidate-duration">{{ formatDuration(candidate.duration) }}</span>
+                  <span class="route-candidate-distance">{{ formatDistance(candidate.distance) }}</span>
+                </div>
+                <div class="route-candidate-arrival">{{ $t('board.routeArrival', { time: formatArrival(candidate.duration) }) }}</div>
+
+                <div v-if="mapStore.routeMode === 'car'" class="route-candidate-badge">{{ candidate.label }}</div>
+
+                <div v-else class="route-candidate-transit">
+                  <div class="route-chip-row">
+                    <span
+                      v-for="(segment, sIdx) in candidate.segments"
+                      :key="sIdx"
+                      class="route-chip"
+                      :class="`route-chip-${segment.mode}`"
+                    >
+                      <template v-if="segment.mode === 'walk'">{{ $t('board.routeWalkMinutes', { minutes: Math.max(1, Math.round(segment.duration / 60)) }) }}</template>
+                      <template v-else-if="segment.mode === 'subway'">🚇 {{ segment.label }}</template>
+                      <template v-else>🚌 {{ segment.label }}</template>
+                    </span>
+                  </div>
+                  <div class="route-transfer-count">{{ $t('board.routeTransferCount', { count: candidate.transfer_count }) }}</div>
+                </div>
+              </button>
+            </div>
+
+            <button type="button" class="route-close-btn" @click="mapStore.clearRoute()">{{ $t('board.routeClear') }}</button>
+          </template>
+
+          <div v-else class="route-state">
+            <div class="route-state-icon">🚗</div>
+            <div class="route-state-title">{{ $t('board.routeCandidateEmpty') }}</div>
+          </div>
         </div>
       </div>
 
@@ -127,6 +187,7 @@ import { useI18n } from 'vue-i18n'
 import { useMapStore } from '@/stores/mapStore'
 import PlaceChatPanel from '@/components/chat/PlaceChatPanel.vue'
 import RouteMiniMap from '@/components/map/RouteMiniMap.vue'
+import DestinationSearch from '@/components/map/DestinationSearch.vue'
 import LangSwitcher from '@/components/common/LangSwitcher.vue'
 import api from '../api'
 
@@ -184,36 +245,44 @@ const goBack = () => {
   router.push('/')
 }
 
-const handleFindRoute = () => {
-  const destLat = location.value?.latitude ?? mapStore.selectedLocation?.latitude
-  const destLng = location.value?.longitude ?? mapStore.selectedLocation?.longitude
-  if (destLat == null || destLng == null) {
-    mapStore.routeError = t('board.routeCoordError')
-    return
-  }
-  mapStore.fetchDirections(destLat, destLng)
-}
-
-// 목록 상단의 빠른 길찾기 버튼: 길찾기 탭으로 전환 + 아직 조회 전이면 바로 시작
+// 목록 상단의 빠른 길찾기 버튼: 길찾기 탭으로 전환만 하면, activeTab watcher가 목적지 자동 설정을 처리
 const goToRouteTab = () => {
   activeTab.value = 'route'
-  if (!mapStore.routeInfo && !mapStore.routeLoading) {
-    handleFindRoute()
-  }
 }
 
-const routeDurationText = computed(() => {
-  const seconds = mapStore.routeInfo?.duration
+// route 탭에 처음 진입했을 때(목적지가 아직 없을 때) 현재 보고 있는 장소를 기본 목적지로 채워준다.
+// place-tabs의 "길찾기" 탭을 직접 눌러 들어온 경우도 함께 처리하기 위해 watch로 감지.
+watch(activeTab, (tab) => {
+  if (tab !== 'route' || mapStore.routeDestination) return
+
+  const destLat = location.value?.latitude ?? mapStore.selectedLocation?.latitude
+  const destLng = location.value?.longitude ?? mapStore.selectedLocation?.longitude
+  if (destLat == null || destLng == null) return
+
+  mapStore.setRouteDestination({ lat: destLat, lng: destLng, name: placeName.value })
+})
+
+const routeCandidates = computed(() => {
+  return mapStore.routeMode === 'car' ? mapStore.carCandidates : mapStore.transitCandidates
+})
+
+const formatDuration = (seconds) => {
   if (seconds == null) return ''
   const minutes = Math.max(1, Math.round(seconds / 60))
   return t('board.routeDurationMinutes', { minutes })
-})
+}
 
-const routeDistanceText = computed(() => {
-  const meters = mapStore.routeInfo?.distance
+const formatDistance = (meters) => {
   if (meters == null) return ''
   return meters >= 1000 ? `${(meters / 1000).toFixed(1)}km` : `${meters}m`
-})
+}
+
+const formatArrival = (durationSeconds) => {
+  const arrival = new Date(Date.now() + (durationSeconds || 0) * 1000)
+  const hh = String(arrival.getHours()).padStart(2, '0')
+  const mm = String(arrival.getMinutes()).padStart(2, '0')
+  return `${hh}:${mm}`
+}
 
 const filteredPosts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -460,10 +529,43 @@ watch(
 }
 
 .route-panel {
+  display: block;
+  padding: 20px 18px 32px;
+}
+
+.route-panel-inner {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.route-mode-tabs {
+  display: flex;
+  gap: 8px;
+  background: #f4f2ee;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.route-mode-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.route-mode-btn.active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .route-state {
@@ -471,20 +573,11 @@ watch(
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 320px;
-}
-
-.route-result {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  width: 100%;
-  max-width: 520px;
+  padding: 36px 12px;
 }
 
 .route-result-map {
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 
 .route-state-icon {
@@ -493,7 +586,7 @@ watch(
 }
 
 .route-state-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--text-primary);
 }
@@ -505,7 +598,6 @@ watch(
   line-height: 1.55;
 }
 
-.route-start-btn,
 .route-retry-btn {
   margin-top: 18px;
   background: var(--accent);
@@ -519,26 +611,107 @@ watch(
   box-shadow: 0 10px 24px rgba(241, 91, 76, 0.2);
 }
 
-.route-result-duration {
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1.2;
+.route-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.route-result-distance {
-  margin-top: 4px;
-  font-size: 14px;
+.route-candidate-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1.5px solid #eceae6;
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.route-candidate-card:hover {
+  border-color: #ddd9d0;
+}
+
+.route-candidate-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(241, 91, 76, 0.16);
+}
+
+.route-candidate-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.route-candidate-duration {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.route-candidate-distance {
+  font-size: 13px;
   font-weight: 700;
   color: var(--accent);
 }
 
-.route-retry-btn {
-  margin-top: 18px;
+.route-candidate-arrival {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.route-candidate-badge {
+  margin-top: 10px;
+  display: inline-block;
+  background: #f4f2ee;
+  color: var(--text-primary);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.route-candidate-transit {
+  margin-top: 10px;
+}
+
+.route-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.route-chip {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 20px;
+  color: #fff;
+}
+
+.route-chip-walk {
+  background: #9ca3af;
+}
+
+.route-chip-bus {
+  background: #22c55e;
+}
+
+.route-chip-subway {
+  background: #3b82f6;
+}
+
+.route-transfer-count {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted);
 }
 
 .route-close-btn {
-  margin-top: 10px;
+  align-self: center;
+  margin-top: 4px;
   background: none;
   border: none;
   color: var(--text-muted);

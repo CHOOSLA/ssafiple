@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import api from '@/api'
 
 export const useMapStore = defineStore('map', () => {
@@ -100,9 +100,14 @@ export const useMapStore = defineStore('map', () => {
     selectedLocation.value = null
   }
 
-  // 길찾기(경로 안내) 상태 — 현재 위치 → 선택 장소
-  const routePath = ref([])
-  const routeInfo = ref(null) // { duration, distance }
+  // 길찾기(경로 안내) 상태 — 현재 위치 → 사용자가 지정한 목적지
+  // 자동차/대중교통 두 모드 각각 상위 경로 후보 리스트를 들고 있다가, 선택된 후보 하나를
+  // routePath/routeSegments computed로 뽑아 지도(KakaoMap.vue)와 미니맵(RouteMiniMap.vue)에 넘긴다.
+  const routeMode = ref('car') // 'car' | 'transit'
+  const routeDestination = ref(null) // { lat, lng, name } | null
+  const carCandidates = ref([])
+  const transitCandidates = ref([])
+  const selectedCandidateIndex = ref(0)
   const routeLoading = ref(false)
   const routeError = ref('')
 
@@ -115,43 +120,80 @@ export const useMapStore = defineStore('map', () => {
     return Promise.resolve({ coords: DEMO_ORIGIN })
   }
 
-  const fetchDirections = async (destLat, destLng) => {
+  // KakaoMap.vue가 이 이름을 그대로 watch하므로 이름을 유지한다.
+  const routePath = computed(() => {
+    const candidates = routeMode.value === 'car' ? carCandidates.value : transitCandidates.value
+    const candidate = candidates[selectedCandidateIndex.value]
+    if (!candidate) return []
+
+    if (routeMode.value === 'car') {
+      return candidate.path || []
+    }
+    return (candidate.segments || []).flatMap((segment) => segment.path || [])
+  })
+
+  // 대중교통 모드에서 구간별(도보/버스/지하철) 색상을 구분해 그리기 위한 데이터
+  const routeSegments = computed(() => {
+    if (routeMode.value !== 'transit') return null
+    const candidate = transitCandidates.value[selectedCandidateIndex.value]
+    if (!candidate) return null
+    return candidate.segments.map((segment) => ({ mode: segment.mode, path: segment.path }))
+  })
+
+  const fetchRoutes = async () => {
+    if (!routeDestination.value) return
+
     routeLoading.value = true
     routeError.value = ''
-    routeInfo.value = null
-    routePath.value = []
 
     try {
       const position = await getCurrentPosition()
-      const { data } = await api.get('/directions/', {
+      const endpoint = routeMode.value === 'car' ? '/directions/car' : '/directions/transit'
+      const { data } = await api.get(endpoint, {
         params: {
           origin_lat: position.coords.latitude,
           origin_lng: position.coords.longitude,
-          dest_lat: destLat,
-          dest_lng: destLng
+          dest_lat: routeDestination.value.lat,
+          dest_lng: routeDestination.value.lng
         }
       })
-      routePath.value = data.path
-      routeInfo.value = { duration: data.duration, distance: data.distance }
-    } catch (err) {
-      if (err?.code === 1) {
-        // GeolocationPositionError.PERMISSION_DENIED
-        routeError.value = '위치 권한이 거부되었습니다. 브라우저 설정에서 위치 접근을 허용해주세요.'
-      } else if (err?.code === 2 || err?.code === 3) {
-        routeError.value = '현재 위치를 확인할 수 없습니다.'
+
+      if (routeMode.value === 'car') {
+        carCandidates.value = data.candidates
       } else {
-        routeError.value = '경로를 찾을 수 없습니다.'
+        transitCandidates.value = data.candidates
       }
+      selectedCandidateIndex.value = 0
+    } catch (err) {
+      routeError.value = '경로를 찾을 수 없습니다.'
     } finally {
       routeLoading.value = false
     }
   }
 
+  const setRouteDestination = (dest) => {
+    routeDestination.value = dest
+    fetchRoutes()
+  }
+
+  const setRouteMode = (mode) => {
+    routeMode.value = mode
+    selectedCandidateIndex.value = 0
+    if (routeDestination.value) {
+      fetchRoutes()
+    }
+  }
+
+  const selectCandidate = (index) => {
+    selectedCandidateIndex.value = index
+  }
+
   const clearRoute = () => {
-    routePath.value = []
-    routeInfo.value = null
+    routeDestination.value = null
+    carCandidates.value = []
+    transitCandidates.value = []
     routeError.value = ''
-    routeLoading.value = false
+    selectedCandidateIndex.value = 0
   }
 
   return {
@@ -169,11 +211,19 @@ export const useMapStore = defineStore('map', () => {
     clearSelectedLocation,
     setSearchQuery,
     setCategoryFilter,
-    routePath,
-    routeInfo,
+    routeMode,
+    routeDestination,
+    carCandidates,
+    transitCandidates,
+    selectedCandidateIndex,
     routeLoading,
     routeError,
-    fetchDirections,
+    routePath,
+    routeSegments,
+    fetchRoutes,
+    setRouteDestination,
+    setRouteMode,
+    selectCandidate,
     clearRoute
   }
 })
