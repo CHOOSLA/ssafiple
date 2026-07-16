@@ -18,6 +18,11 @@
           <div class="meta-info">
             <span>{{ $t('board.authorLabel', { author: post.author }) }}</span>
             <span>{{ formatDate(post.created_at) }}</span>
+            <button type="button" class="translate-btn" @click="togglePostTranslation" :disabled="isTranslatingPost">
+              <template v-if="isTranslatingPost">...</template>
+              <template v-else-if="isPostTranslated">{{ locale === 'en' ? 'View Original' : '원문 보기' }}</template>
+              <template v-else>{{ locale === 'en' ? 'View Translation' : '번역 보기' }}</template>
+            </button>
           </div>
 
           <div v-if="galleryImages.length" class="post-gallery">
@@ -63,7 +68,7 @@
             </template>
           </div>
 
-          <p class="body-text">{{ post.content }}</p>
+          <p class="body-text">{{ isPostTranslated ? translatedPostContent : post.content }}</p>
         </div>
 
         <div class="section-divider"></div>
@@ -77,9 +82,14 @@
             <div class="comment-meta">
               <strong>{{ comment.author }}</strong>
               <span>{{ formatDate(comment.created_at) }}</span>
+              <button type="button" class="translate-btn" @click="toggleCommentTranslation(comment)" :disabled="commentTranslationState[comment.id]?.loading">
+                <template v-if="commentTranslationState[comment.id]?.loading">...</template>
+                <template v-else-if="commentTranslationState[comment.id]?.isTranslated">{{ locale === 'en' ? 'View Original' : '원문 보기' }}</template>
+                <template v-else>{{ locale === 'en' ? 'View Translation' : '번역 보기' }}</template>
+              </button>
               <button type="button" class="comment-delete" @click="deleteComment(comment.id)">{{ $t('common.actions.delete') }}</button>
             </div>
-            <p class="comment-content">{{ comment.content }}</p>
+            <p class="comment-content">{{ commentTranslationState[comment.id]?.isTranslated ? commentTranslationState[comment.id].translatedText : comment.content }}</p>
           </div>
           <p v-if="!(post.comments || []).length" class="empty-comments">{{ $t('board.noComments') }}</p>
         </div>
@@ -114,6 +124,68 @@ const post = ref(null)
 const commentAuthor = ref('')
 const commentPassword = ref('')
 const commentContent = ref('')
+
+const isPostTranslated = ref(false)
+const translatedPostContent = ref('')
+const isTranslatingPost = ref(false)
+
+const togglePostTranslation = async () => {
+  if (isPostTranslated.value) {
+    isPostTranslated.value = false
+    return
+  }
+  if (translatedPostContent.value) {
+    isPostTranslated.value = true
+    return
+  }
+  
+  isTranslatingPost.value = true
+  try {
+    const target_lang = locale.value === 'en' ? 'en' : 'ko'
+    const { data } = await api.post('/translate', {
+      text: post.value.content,
+      target_lang
+    })
+    translatedPostContent.value = data.translated
+    isPostTranslated.value = true
+  } catch (err) {
+    console.error('Translation error', err)
+  } finally {
+    isTranslatingPost.value = false
+  }
+}
+
+const commentTranslationState = ref({})
+
+const toggleCommentTranslation = async (comment) => {
+  const state = commentTranslationState.value[comment.id] || { isTranslated: false, translatedText: '', loading: false }
+  
+  if (state.isTranslated) {
+    commentTranslationState.value[comment.id] = { ...state, isTranslated: false }
+    return
+  }
+  if (state.translatedText) {
+    commentTranslationState.value[comment.id] = { ...state, isTranslated: true }
+    return
+  }
+  
+  commentTranslationState.value[comment.id] = { ...state, loading: true }
+  try {
+    const target_lang = locale.value === 'en' ? 'en' : 'ko'
+    const { data } = await api.post('/translate', {
+      text: comment.content,
+      target_lang
+    })
+    commentTranslationState.value[comment.id] = {
+      loading: false,
+      isTranslated: true,
+      translatedText: data.translated
+    }
+  } catch (err) {
+    console.error('Translation error', err)
+    commentTranslationState.value[comment.id] = { ...state, loading: false }
+  }
+}
 
 const formatDate = (value) => {
   if (!value) return '-'
@@ -440,6 +512,23 @@ onMounted(fetchPost)
 .comment-meta span {
   color: #c2bfb7;
   font-size: 11.5px;
+}
+
+.translate-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+.translate-btn:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
 }
 
 .comment-delete {
